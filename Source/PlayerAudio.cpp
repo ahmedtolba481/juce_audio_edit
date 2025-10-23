@@ -83,3 +83,16 @@ double PlayerAudio::getLength() const
 {
     return transportSource.getLengthInSeconds();
 }
+bool PlayerAudio::isPlaying() const
+{
+    return transportSource.isPlaying();
+}
+void PlayerAudio::setLooping(bool f)
+{
+    isLooping = f;
+
+    if (readerSource)
+        readerSource->setLooping(f);
+
+    transportSource.setLooping(f);
+}

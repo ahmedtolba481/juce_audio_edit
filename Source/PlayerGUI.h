@@ -19,11 +19,26 @@ public:
 
 private:
     PlayerAudio playerAudio;
-
+    bool isMuted = false; 
+	bool isLooping = false;
+    float previousGain = 0.4f;
     // GUI elements
-    juce::TextButton loadButton{ "Load File" };
-    juce::TextButton restartButton{ "Restart" };
-    juce::TextButton stopButton{ "Stop" };
+    juce::TextButton loadButton;
+    juce::ImageButton PlayButton;
+    juce::Image playimage;
+    juce::Image pauseimage;
+    juce::ImageButton restartButton;
+    juce::Image restartimage;
+    juce::ImageButton BeginButton;
+    juce::Image beginimage;
+    juce::ImageButton EndButton;
+    juce::Image endimage;
+    juce::ImageButton MuteButton;
+    juce::Image mutedImage; 
+    juce::Image unmutedImage;
+    juce::ImageButton LoopButton;
+    juce::Image loopimage;
+    juce::Image unloopimage;
     juce::Slider volumeSlider;
 
     std::unique_ptr<juce::FileChooser> fileChooser;

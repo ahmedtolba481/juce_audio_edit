@@ -4,14 +4,25 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="mNvSVO" name="juce_audio_edit">
     <GROUP id="{4EB264E0-1E8F-3DDF-719A-DA3EAC2505C6}" name="Source">
+      <FILE id="dPm41f" name="loop.png" compile="0" resource="1" file="Source/loop.png"/>
       <FILE id="e0yHkz" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="ov4K5n" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
       <FILE id="ZeVKmZ" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+      <FILE id="vON6M8" name="pause.png" compile="0" resource="1" file="Source/pause.png"/>
+      <FILE id="yJJ4HP" name="play - Copy.png" compile="0" resource="1" file="Source/play - Copy.png"/>
+      <FILE id="WlQsES" name="play-buttton.png" compile="0" resource="1"
+            file="Source/play-buttton.png"/>
+      <FILE id="mToINf" name="play.png" compile="0" resource="1" file="Source/play.png"/>
       <FILE id="wUIe3R" name="PlayerAudio.cpp" compile="1" resource="0" file="Source/PlayerAudio.cpp"/>
       <FILE id="T3vQEH" name="PlayerAudio.h" compile="0" resource="0" file="Source/PlayerAudio.h"/>
       <FILE id="nZ2KPR" name="PlayerGUI.cpp" compile="1" resource="0" file="Source/PlayerGUI.cpp"/>
       <FILE id="IEaEhp" name="PlayerGUI.h" compile="0" resource="0" file="Source/PlayerGUI.h"/>
+      <FILE id="t3F9QN" name="rotate.png" compile="0" resource="1" file="Source/rotate.png"/>
+      <FILE id="wJ69KC" name="speaker-filled-audio-tool.png" compile="0"
+            resource="1" file="Source/speaker-filled-audio-tool.png"/>
+      <FILE id="QIUWcH" name="stop.png" compile="0" resource="1" file="Source/stop.png"/>
+      <FILE id="VUb3qN" name="volume-mute.png" compile="0" resource="1" file="Source/volume-mute.png"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
