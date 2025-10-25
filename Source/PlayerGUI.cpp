@@ -20,21 +20,22 @@ void PlayerGUI::paint(juce::Graphics& g)
 PlayerGUI::PlayerGUI() 
 {
     //load button
-    for (auto* btn : { &loadButton })
-    {
-        btn->addListener(this);
-        addAndMakeVisible(btn);
+    loadimage = juce::ImageFileFormat::loadFrom(BinaryData::upload_png, BinaryData::upload_pngSize);
 
-        btn->setColour(juce::TextButton::buttonColourId, juce::Colours::black);
-        btn->setColour(juce::TextButton::textColourOffId, juce::Colours::whitesmoke);
-    }
+    loadButton.setImages(false, true, true,
+        loadimage, 1.0f, juce::Colours::transparentBlack,     // normal
+        loadimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+        loadimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+    );
+    addAndMakeVisible(loadButton);
+    loadButton.addListener(this);
 	// play button
     playimage= juce::ImageFileFormat::loadFrom(BinaryData::playbuttton_png, BinaryData::playbuttton_pngSize);
    pauseimage = juce::ImageFileFormat::loadFrom(BinaryData::pause_png, BinaryData::pause_pngSize);
 
    PlayButton.setImages(false, true, true,
        pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
-       pauseimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+       pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
        playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
    );
 
@@ -46,7 +47,7 @@ PlayerGUI::PlayerGUI()
 
     restartButton.setImages(false, true, true,
         restartimage, 1.0f, juce::Colours::transparentBlack,     // normal
-        restartimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+        restartimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
         restartimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
     );
 
@@ -58,7 +59,7 @@ PlayerGUI::PlayerGUI()
 
     BeginButton.setImages(false, true, true,
         beginimage, 1.0f, juce::Colours::transparentBlack,     // normal
-        beginimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+        beginimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
         beginimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
     );
 
@@ -70,7 +71,7 @@ PlayerGUI::PlayerGUI()
 
     EndButton.setImages(false, true, true,
         endimage, 1.0f, juce::Colours::transparentBlack,     // normal
-        endimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+        endimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
         endimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
     );
 
@@ -83,7 +84,7 @@ PlayerGUI::PlayerGUI()
 
     MuteButton.setImages(false, true, true,
         unmutedImage, 1.0f, juce::Colours::transparentBlack,     // normal
-        unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+        unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
         mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
     );
 
@@ -96,7 +97,7 @@ PlayerGUI::PlayerGUI()
 
     LoopButton.setImages(false, true, true,
         unloopimage, 1.0f, juce::Colours::transparentBlack,     // normal
-        unloopimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+        unloopimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
         loopimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
     );
 
@@ -168,7 +169,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         playerAudio.setPosition(0.0);
         PlayButton.setImages(false, true, true,
             pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
-            pauseimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+            pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
             playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
         );
         playerAudio.start();
@@ -181,7 +182,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 
             PlayButton.setImages(false, true, true,
                 playimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                playimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                playimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                 pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
             );
         }
@@ -194,7 +195,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 playerAudio.start();
                 PlayButton.setImages(false, true, true,
                     pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    pauseimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
             }
@@ -205,7 +206,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 
                 PlayButton.setImages(false, true, true,
                     playimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    playimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    playimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
             }
@@ -219,7 +220,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 
                 PlayButton.setImages(false, true, true,
                     playimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    playimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    playimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
             }
@@ -229,7 +230,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 
                 PlayButton.setImages(false, true, true,
                     pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    pauseimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
             }
@@ -242,7 +243,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 isMuted = false;
                 MuteButton.setImages(false, true, true,
                     unmutedImage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
             }
@@ -253,7 +254,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 isMuted = true;
                 MuteButton.setImages(false, true, true,
                     mutedImage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    mutedImage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
 
@@ -266,7 +267,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 isLooping = false;
                 LoopButton.setImages(false, true, true,
                     unloopimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    unloopimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    unloopimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     loopimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
             }
@@ -275,7 +276,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 isLooping = true;
                 LoopButton.setImages(false, true, true,
                     loopimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    loopimage, 1.0f, juce::Colours::white.withAlpha(0.3f), // hover
+                    loopimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
                     unloopimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
                 );
             }

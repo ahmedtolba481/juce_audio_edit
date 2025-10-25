@@ -23,7 +23,8 @@ private:
 	bool isLooping = false;
     float previousGain = 0.4f;
     // GUI elements
-    juce::TextButton loadButton;
+    juce::ImageButton loadButton;
+	juce::Image loadimage;
     juce::ImageButton PlayButton;
     juce::Image playimage;
     juce::Image pauseimage;
