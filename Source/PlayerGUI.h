@@ -40,6 +40,10 @@ private:
     juce::ImageButton LoopButton;
     juce::Image loopimage;
     juce::Image unloopimage;
+	juce::ImageButton forwardButton;
+	juce::Image forwardimage;
+	juce::ImageButton backwardButton;
+	juce::Image backwardimage;
     juce::Slider volumeSlider;
 
     std::unique_ptr<juce::FileChooser> fileChooser;

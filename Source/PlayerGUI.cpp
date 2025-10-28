@@ -104,7 +104,24 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(LoopButton);
     LoopButton.addListener(this);
 
-    loadButton.setButtonText("Load");
+	// forward button
+	forwardimage = juce::ImageFileFormat::loadFrom(BinaryData::forward_png, BinaryData::forward_pngSize);
+    forwardButton.setImages(false, true, true,
+        forwardimage, 1.0f, juce::Colours::transparentBlack,     // normal
+        forwardimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+        forwardimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+	);
+	addAndMakeVisible(forwardButton);
+	forwardButton.addListener(this);
+	// backward button
+	backwardimage = juce::ImageFileFormat::loadFrom(BinaryData::backward_png, BinaryData::backward_pngSize);
+    backwardButton.setImages(false, true, true,
+        backwardimage, 1.0f, juce::Colours::transparentBlack,     // normal
+        backwardimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+        backwardimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+	);
+	addAndMakeVisible(backwardButton);
+	backwardButton.addListener(this);
     // Volume slider
     volumeSlider.setRange(0.0, 1.0, 0.01);
     volumeSlider.setValue(0.4);
@@ -121,7 +138,7 @@ void PlayerGUI::resized()
     int buttonHeight = 35;
     int spacing = 15;
 
-    int numButtons = 7;
+    int numButtons = 9;
     int totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
     int startX = (getWidth() - totalWidth) / 2;
 
@@ -132,6 +149,8 @@ void PlayerGUI::resized()
     EndButton.setBounds(startX + (buttonWidth + spacing) * 4, y, buttonWidth, buttonHeight);
     LoopButton.setBounds(startX + (buttonWidth + spacing) * 5, y, buttonWidth, buttonHeight);
     MuteButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
+	forwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
+	backwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
 
     volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
 }
@@ -176,8 +195,32 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     }
 
     if (button == &BeginButton)
+    {
+        playerAudio.setPosition(0.0);
+        playerAudio.stop();
+
+        PlayButton.setImages(false, true, true,
+            playimage, 1.0f, juce::Colours::transparentBlack,     // normal
+            playimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+            pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+        );
+    }
+
+    if (button == &EndButton)
+    {
+        if (isLooping)
         {
             playerAudio.setPosition(0.0);
+            playerAudio.start();
+            PlayButton.setImages(false, true, true,
+                pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
+                pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+                playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+            );
+        }
+        else
+        {
+            playerAudio.setPosition(playerAudio.getLength() - 0.05);
             playerAudio.stop();
 
             PlayButton.setImages(false, true, true,
@@ -186,103 +229,84 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
             );
         }
-
-    if (button == &EndButton)
-        {
-            if (isLooping)
-            {
-                playerAudio.setPosition(0.0);
-                playerAudio.start();
-                PlayButton.setImages(false, true, true,
-                    pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-            }
-            else
-            {
-                playerAudio.setPosition(playerAudio.getLength() - 0.05);
-                playerAudio.stop();
-
-                PlayButton.setImages(false, true, true,
-                    playimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    playimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-            }
-        }
+    }
 
     if (button == &PlayButton)
+    {
+        if (playerAudio.isPlaying())
         {
-            if (playerAudio.isPlaying())
-            {
-                playerAudio.stop();
+            playerAudio.stop();
 
-                PlayButton.setImages(false, true, true,
-                    playimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    playimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-            }
-            else
-            {
-                playerAudio.start();
-
-                PlayButton.setImages(false, true, true,
-                    pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-            }
+            PlayButton.setImages(false, true, true,
+                playimage, 1.0f, juce::Colours::transparentBlack,     // normal
+                playimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+                pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+            );
         }
+        else
+        {
+            playerAudio.start();
+
+            PlayButton.setImages(false, true, true,
+                pauseimage, 1.0f, juce::Colours::transparentBlack,     // normal
+                pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+                playimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+            );
+        }
+    }
 
     if (button == &MuteButton) {
-            if (isMuted) {
-                playerAudio.setGain(previousGain);
-                volumeSlider.setValue(previousGain);
-                isMuted = false;
-                MuteButton.setImages(false, true, true,
-                    unmutedImage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-            }
-            else {
-                previousGain = (float)volumeSlider.getValue();
-                playerAudio.setGain(0.0f);
-                volumeSlider.setValue(0.0);
-                isMuted = true;
-                MuteButton.setImages(false, true, true,
-                    mutedImage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-
-            }
+        if (isMuted) {
+            playerAudio.setGain(previousGain);
+            volumeSlider.setValue(previousGain);
+            isMuted = false;
+            MuteButton.setImages(false, true, true,
+                unmutedImage, 1.0f, juce::Colours::transparentBlack,     // normal
+                unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+                mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+            );
         }
+        else {
+            previousGain = (float)volumeSlider.getValue();
+            playerAudio.setGain(0.0f);
+            volumeSlider.setValue(0.0);
+            isMuted = true;
+            MuteButton.setImages(false, true, true,
+                mutedImage, 1.0f, juce::Colours::transparentBlack,     // normal
+                mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+                unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+            );
+
+        }
+    }
 
     if (button == &LoopButton) {
-            if (isLooping) {
-                playerAudio.setLooping(false);
-                isLooping = false;
-                LoopButton.setImages(false, true, true,
-                    unloopimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    unloopimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    loopimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-            }
-            else {
-                playerAudio.setLooping(true);
-                isLooping = true;
-                LoopButton.setImages(false, true, true,
-                    loopimage, 1.0f, juce::Colours::transparentBlack,     // normal
-                    loopimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
-                    unloopimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
-                );
-            }
+        if (isLooping) {
+            playerAudio.setLooping(false);
+            isLooping = false;
+            LoopButton.setImages(false, true, true,
+                unloopimage, 1.0f, juce::Colours::transparentBlack,     // normal
+                unloopimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+                loopimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+            );
         }
-
+        else {
+            playerAudio.setLooping(true);
+            isLooping = true;
+            LoopButton.setImages(false, true, true,
+                loopimage, 1.0f, juce::Colours::transparentBlack,     // normal
+                loopimage, 0.5f, juce::Colours::white.withAlpha(0.3f), // hover
+                unloopimage, 1.0f, juce::Colours::white.withAlpha(0.6f) // pressed
+            );
+        }
     }
+    if (button == &forwardButton) {
+        playerAudio.setPosition(playerAudio.getPosition() + 10.0);
+    }
+    if(button == &backwardButton) {
+        playerAudio.setPosition(playerAudio.getPosition() - 10.0);
+	}
+}
 
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
 {

@@ -25,6 +25,8 @@
       <FILE id="KTXJo4" name="upload.png" compile="0" resource="1" file="Source/Media/upload.png"/>
       <FILE id="c2IZRe" name="volume-mute.png" compile="0" resource="1" file="Source/Media/volume-mute.png"/>
     </GROUP>
+    <FILE id="vvuhaR" name="backward.png" compile="0" resource="1" file="Source/Media/backward.png"/>
+    <FILE id="LbFLLA" name="forward.png" compile="0" resource="1" file="Source/Media/forward.png"/>
   </MAINGROUP>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
