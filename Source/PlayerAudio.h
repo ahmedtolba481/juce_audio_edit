@@ -20,6 +20,7 @@ public:
     double getLength() const;
 	bool isPlaying() const;
 	void setLooping(bool f) ;
+    double getLengthInSeconds();
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;

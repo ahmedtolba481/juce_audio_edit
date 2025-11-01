@@ -96,3 +96,7 @@ void PlayerAudio::setLooping(bool f)
 
     transportSource.setLooping(f);
 }
+double PlayerAudio::getLengthInSeconds()
+{
+    return transportSource.getLengthInSeconds();
+};

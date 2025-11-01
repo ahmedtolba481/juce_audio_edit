@@ -300,12 +300,26 @@ void PlayerGUI::buttonClicked(juce::Button* button)
             );
         }
     }
-    if (button == &forwardButton) {
-        playerAudio.setPosition(playerAudio.getPosition() + 10.0);
+    if (button == &forwardButton)
+    {
+        double newPos = playerAudio.getPosition() + 10.0;
+        double trackLength = playerAudio.getLengthInSeconds();
+        if (newPos > trackLength)
+            newPos = trackLength;
+
+        playerAudio.setPosition(newPos);
     }
-    if(button == &backwardButton) {
-        playerAudio.setPosition(playerAudio.getPosition() - 10.0);
-	}
+
+    else if (button == &backwardButton)
+    {
+        double newPos = playerAudio.getPosition() - 10.0;
+        if (newPos < 0.0)
+            newPos = 0.0;
+
+        playerAudio.setPosition(newPos);
+    }
+
+
 }
 
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
