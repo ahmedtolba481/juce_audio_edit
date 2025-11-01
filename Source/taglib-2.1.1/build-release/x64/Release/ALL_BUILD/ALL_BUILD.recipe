@@ -2,10 +2,10 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>D:\fcai\seccond year\first term\oop\assignment two\juce_audio_edit\Source\taglib-2.1.1\build-release\x64\Release\ZERO_CHECK</FullPath>
+      <FullPath>E:\Tarek\Collage\Second Year\First Semester\OOP\Assignments\Assignment 2 AhmedVerison\juce_audio_edit\Source\taglib-2.1.1\build-release\x64\Release\ZERO_CHECK</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>D:\fcai\seccond year\first term\oop\assignment two\juce_audio_edit\Source\taglib-2.1.1\build-release\x64\Release\ALL_BUILD</FullPath>
+      <FullPath>E:\Tarek\Collage\Second Year\First Semester\OOP\Assignments\Assignment 2 AhmedVerison\juce_audio_edit\Source\taglib-2.1.1\build-release\x64\Release\ALL_BUILD</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

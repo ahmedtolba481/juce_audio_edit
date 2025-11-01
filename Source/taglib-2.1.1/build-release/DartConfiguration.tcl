@@ -4,14 +4,14 @@
 
 
 # Configuration directories and files
-SourceDirectory: D:/fcai/seccond year/first term/oop/assignment two/juce_audio_edit/Source/taglib-2.1.1
-BuildDirectory: D:/fcai/seccond year/first term/oop/assignment two/juce_audio_edit/Source/taglib-2.1.1/build-release
+SourceDirectory: E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1
+BuildDirectory: E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release
 
 # Where to place the cost data store
 CostDataFile: 
 
 # Site is something like machine.domain, i.e. pragmatic.crd
-Site: Ahmed-laptop
+Site: DESKTOP-938N9ER
 
 # Build name is osname-revision-compiler, i.e. Linux-2.4.2-2smp-c++
 BuildName: Win32-MSBuild
@@ -27,7 +27,7 @@ SubmitInactivityTimeout:
 NightlyStartTime: 00:00:00 EDT
 
 # Commands for the build/test/submit cycle
-ConfigureCommand: "C:/Program Files/CMake/bin/cmake.exe" "D:/fcai/seccond year/first term/oop/assignment two/juce_audio_edit/Source/taglib-2.1.1"
+ConfigureCommand: "C:/Program Files/CMake/bin/cmake.exe" "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1"
 MakeCommand: "C:\Program Files\CMake\bin\cmake.exe" --build . --config "${CTEST_CONFIGURATION_TYPE}"
 DefaultCTestConfigurationType: Release
 
@@ -81,7 +81,7 @@ MemoryCheckCommandOptions:
 MemoryCheckSuppressionFile: 
 
 # Coverage
-CoverageCommand: D:/apps/vscode/msys2/mingw64/bin/gcov.exe
+CoverageCommand: C:/msys64/mingw64/bin/gcov.exe
 CoverageExtraFlags: -l
 
 # Testing options

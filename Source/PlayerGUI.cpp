@@ -254,11 +254,12 @@ void PlayerGUI::resized()
     EndButton.setBounds(startX + (buttonWidth + spacing) * 4, y, buttonWidth, buttonHeight);
     LoopButton.setBounds(startX + (buttonWidth + spacing) * 5, y, buttonWidth, buttonHeight);
     MuteButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
-    forwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
-    backwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
+    backwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
+    forwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
+	loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
 
-    // ===== NEW: POSITION SLIDER LAYOUT =====
-    int positionY = 70;
+ 
+    int positionY = 175;
     currentTimeLabel.setBounds(20, positionY, 60, 20);
     totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
     positionSlider.setBounds(85, positionY, getWidth() - 170, 20);
@@ -283,7 +284,7 @@ PlayerGUI::~PlayerGUI()
         propertiesFile->setValue("speed", speedslider.getValue());
         propertiesFile->setValue("totalTime", totalTimeLabel.getTextValue());
         propertiesFile->setValue("mutedState", isMuted);
-        propertiesFile->saveIfNeeded(); // ✅ always save on close
+        propertiesFile->saveIfNeeded();
     }
 }
 
@@ -303,12 +304,25 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 auto file = fc.getResult();
                 if (file.existsAsFile())
                 {
-                    playerAudio.loadFile(file);
-                    // Update total time label
-                    double totalLength = playerAudio.getLengthInSeconds();
-                    totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
-                    currentTimeLabel.setText("00:00", juce::dontSendNotification);
-                    positionSlider.setValue(0.0, juce::dontSendNotification);
+                    if (playerAudio.loadFile(file))
+                    {
+                        // Update total time label
+                        double totalLength = playerAudio.getLengthInSeconds();
+                        totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
+                        currentTimeLabel.setText("00:00", juce::dontSendNotification);
+                        positionSlider.setValue(0.0, juce::dontSendNotification);
+
+                        // Update metadata display
+                        updateMetadataDisplay();
+                    }
+                    else
+                    {
+                        // Handle load error
+                        metadataTitleLabel.setText("Error loading file", juce::dontSendNotification);
+                        metadataArtistLabel.setText("", juce::dontSendNotification);
+                        metadataAlbumLabel.setText("", juce::dontSendNotification);
+                        metadataInfoLabel.setText("", juce::dontSendNotification);
+                    }
                 }
             });
     }
@@ -372,6 +386,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         if (lastFile.existsAsFile())
         {
             playerAudio.loadFile(lastFile);
+        
 
             juce::Timer::callAfterDelay(300, [this]()
                 {
@@ -404,6 +419,8 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                     currentTimeLabel.setText(formatTime(lastPosition), juce::dontSendNotification);
                     if (auto totalLength = playerAudio.getLengthInSeconds(); totalLength > 0.0)
                         positionSlider.setValue(lastPosition / totalLength, juce::dontSendNotification);
+
+                    updateMetadataDisplay();
                 });
         }
     }

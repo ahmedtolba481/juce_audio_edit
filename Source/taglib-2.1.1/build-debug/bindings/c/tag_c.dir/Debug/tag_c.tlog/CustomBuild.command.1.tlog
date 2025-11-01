@@ -1,6 +1,6 @@
-^D:\FCAI\SECCOND YEAR\FIRST TERM\OOP\ASSIGNMENT TWO\JUCE_AUDIO_EDIT\SOURCE\TAGLIB-2.1.1\BINDINGS\C\CMAKELISTS.TXT
+^E:\TAREK\COLLAGE\SECOND YEAR\FIRST SEMESTER\OOP\ASSIGNMENTS\ASSIGNMENT 2 AHMEDVERISON\JUCE_AUDIO_EDIT\SOURCE\TAGLIB-2.1.1\BINDINGS\C\CMAKELISTS.TXT
 setlocal
-"C:\Program Files\CMake\bin\cmake.exe" "-SD:/fcai/seccond year/first term/oop/assignment two/juce_audio_edit/Source/taglib-2.1.1" "-BD:/fcai/seccond year/first term/oop/assignment two/juce_audio_edit/Source/taglib-2.1.1/build-debug" --check-stamp-file "D:/fcai/seccond year/first term/oop/assignment two/juce_audio_edit/Source/taglib-2.1.1/build-debug/bindings/c/CMakeFiles/generate.stamp"
+"C:\Program Files\CMake\bin\cmake.exe" "-SE:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1" "-BE:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-debug" --check-stamp-file "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-debug/bindings/c/CMakeFiles/generate.stamp"
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
