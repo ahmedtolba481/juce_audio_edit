@@ -100,28 +100,26 @@ bool PlayerAudio::loadFile(const juce::File& file)
 {
     if (file.existsAsFile())
     {
-        // ✅ FIXED: Store the loaded file for session persistence
-        lastLoadedFile = file;
-        
+		lastLoadedFile = file;
         extractMetadata(file);
 
         if (auto* reader = formatManager.createReaderFor(file))
         {
-            // 🔑 Disconnect old source first
+            // Disconnect old source first
             transportSource.stop();
             transportSource.setSource(nullptr);
             readerSource.reset();
 
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
 
-            // Attach safely to transportSource (resampler already wraps transportSource)
+            // Attach safely to transportSource 
             transportSource.setSource(readerSource.get(),
                 0,
                 nullptr,
                 reader->sampleRate);
             transportSource.start();
-            
             return true;
+           
         }
     }
     return false;

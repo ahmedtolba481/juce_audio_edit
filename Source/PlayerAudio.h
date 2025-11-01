@@ -48,7 +48,7 @@ public:
 
     const AudioMetadata& getMetadata() const { return metadata; }
 
-    // === Added for session persistence ===
+
     juce::File getLastLoadedFile() const { return lastLoadedFile; }
 
 private:
@@ -60,12 +60,10 @@ private:
     bool isLooping = false;
 
     // Metadata
-    AudioMetadata metadata;
-    void extractMetadata(const juce::File& file);
-    juce::String convertTagLibString(const TagLib::String& str);
-
-    // === Added for persistence ===
     juce::File lastLoadedFile;
     float lastVolume = 1.0f;
     float lastSpeed = 1.0f;
+    AudioMetadata metadata;
+    void extractMetadata(const juce::File& file);
+    juce::String convertTagLibString(const TagLib::String& str);
 };

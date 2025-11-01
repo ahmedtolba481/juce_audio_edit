@@ -46,6 +46,13 @@ PlayerGUI::PlayerGUI()
     options.folderName = storageDir.getFullPathName();
 
     propertiesFile = std::make_unique<juce::PropertiesFile>(options);
+    
+    // Playlist Box
+    addAndMakeVisible(addFilesButton);
+    addAndMakeVisible(playlistBox);
+	addFilesButton.addListener(this);
+    
+    
     // Last Session
     addAndMakeVisible(loadLast);
     loadLast.addListener(this);
@@ -243,7 +250,7 @@ void PlayerGUI::resized()
     int buttonHeight = 35;
     int spacing = 15;
 
-    int numButtons = 10;
+    int numButtons = 11;
     int totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
     int startX = (getWidth() - totalWidth) / 2;
 
@@ -256,7 +263,12 @@ void PlayerGUI::resized()
     MuteButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
     backwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
     forwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
-    loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
+	loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
+    addFilesButton.setBounds(startX + (buttonWidth + spacing) * 10, y, buttonWidth, buttonHeight);
+    playlistBox.setRowHeight(24);
+    playlistBox.setModel(this);
+    playlistBox.setBounds(20, 350, getWidth() - 40, getHeight() - 370);
+
 
     // Position slider layout (below buttons)
     int positionY = 175;
@@ -304,17 +316,37 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 auto file = fc.getResult();
                 if (file.existsAsFile())
                 {
-                    playerAudio.loadFile(file);
-                    // Update total time label
-                    double totalLength = playerAudio.getLengthInSeconds();
-                    totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
-                    currentTimeLabel.setText("00:00", juce::dontSendNotification);
-                    positionSlider.setValue(0.0, juce::dontSendNotification);
+                    if (playerAudio.loadFile(file))
+                    {
+                        // Update total time label
+                        double totalLength = playerAudio.getLengthInSeconds();
+                        totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
+                        currentTimeLabel.setText("00:00", juce::dontSendNotification);
+                        positionSlider.setValue(0.0, juce::dontSendNotification);
 
-                    updateMetadataDisplay();
+                        // Update metadata display
+                        updateMetadataDisplay();
+                    }
+                    else
+                    {
+                        // Handle load error
+                        metadataTitleLabel.setText("Error loading file", juce::dontSendNotification);
+                        metadataArtistLabel.setText("", juce::dontSendNotification);
+                        metadataAlbumLabel.setText("", juce::dontSendNotification);
+                        metadataInfoLabel.setText("", juce::dontSendNotification);
+                    }
                 }
-            });
-    }
+                playerAudio.loadFile(file);
+                // Update total time label
+                double totalLength = playerAudio.getLengthInSeconds();
+                totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
+                currentTimeLabel.setText("00:00", juce::dontSendNotification);
+                positionSlider.setValue(0.0, juce::dontSendNotification);
+
+                updateMetadataDisplay();
+            }
+    );
+}
 
     if (button == &restartButton)
     {
@@ -326,7 +358,29 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         );
         playerAudio.start();
     }
+    if (button == &addFilesButton)
+    {
+        fileChooser = std::make_unique<juce::FileChooser>(
+            "Select Audio Files",
+            juce::File{},
+            "*.mp3;*.wav;*.aiff"
+        );
 
+        fileChooser->launchAsync(
+            juce::FileBrowserComponent::openMode
+            | juce::FileBrowserComponent::canSelectFiles
+            | juce::FileBrowserComponent::canSelectMultipleItems,
+            [this](const juce::FileChooser& fc)
+            {
+                auto files = fc.getResults();
+                for (auto& f : files)
+                    playlistFiles.addIfNotAlreadyThere(f);
+
+                playlistBox.updateContent();
+                playlistBox.repaint();
+            }
+        );
+    }
     if (button == &BeginButton)
     {
         playerAudio.setPosition(0.0);
@@ -375,6 +429,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         if (lastFile.existsAsFile())
         {
             playerAudio.loadFile(lastFile);
+        
 
             juce::Timer::callAfterDelay(300, [this]()
                 {
@@ -642,4 +697,38 @@ void PlayerGUI::updateMetadataDisplay()
     }
 
     metadataInfoLabel.setText(info, juce::dontSendNotification);
+}
+
+
+
+int PlayerGUI::getNumRows()
+{
+    return playlistFiles.size();
+}
+
+void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics& g,
+    int width, int height, bool rowIsSelected)
+{
+    if (rowNumber < playlistFiles.size())
+    {
+        auto filename = playlistFiles[rowNumber].getFileName();
+
+        if (rowIsSelected)
+            g.fillAll(juce::Colours::lightblue);
+        else
+            g.fillAll(juce::Colours::transparentBlack);
+
+        g.setColour(juce::Colours::white);
+        g.drawText(filename, 10, 0, width - 10, height, juce::Justification::centredLeft);
+    }
+}
+
+void PlayerGUI::selectedRowsChanged(int lastRowSelected)
+{
+    if (lastRowSelected >= 0 && lastRowSelected < playlistFiles.size())
+    {
+        auto file = playlistFiles[lastRowSelected];
+        playerAudio.loadFile(file);
+        playerAudio.start();
+    }
 }
