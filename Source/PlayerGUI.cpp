@@ -22,6 +22,22 @@ void PlayerGUI::paint(juce::Graphics& g)
 
 PlayerGUI::PlayerGUI()
 {
+    juce::PropertiesFile::Options options;
+    options.applicationName = "JUCE-AudioPlayer";
+    options.filenameSuffix = "settings";
+    options.osxLibrarySubFolder = "Application Support";
+    options.commonToAllUsers = false;
+
+    auto storageDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+        .getChildFile(options.applicationName);
+
+    options.folderName = storageDir.getFullPathName();
+
+    propertiesFile = std::make_unique<juce::PropertiesFile>(options);
+    // Last Session
+    addAndMakeVisible(loadLast);
+    loadLast.addListener(this);
+
     //load button
     loadimage = juce::ImageFileFormat::loadFrom(BinaryData::upload_png, BinaryData::upload_pngSize);
     loadButton.setImages(false, true, true,
@@ -160,6 +176,15 @@ PlayerGUI::PlayerGUI()
 
     // Start timer to update position slider
     startTimer(10);
+
+    // ====== RESTORE LAST SESSION ======
+    auto lastFilePath = propertiesFile->getValue("lastFilePath");
+    lastPosition = propertiesFile->getDoubleValue("lastPosition", 0.0);
+    lastVolume = propertiesFile->getDoubleValue("volume", 0.5);
+    lastSpeed = propertiesFile->getDoubleValue("speed", 1.0);
+    lastFullTime = propertiesFile->getValue("totalTime", "00:00");
+    mutedState = propertiesFile->getBoolValue("mutedState", false);
+    lastFile = juce::File(lastFilePath);
 }
 
 void PlayerGUI::resized()
@@ -169,7 +194,7 @@ void PlayerGUI::resized()
     int buttonHeight = 35;
     int spacing = 15;
 
-    int numButtons = 9;
+    int numButtons = 10;
     int totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
     int startX = (getWidth() - totalWidth) / 2;
 
@@ -182,8 +207,9 @@ void PlayerGUI::resized()
     MuteButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
     forwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
     backwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
+    loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
 
-    // ===== NEW: POSITION SLIDER LAYOUT =====
+    // POSITION SLIDER LAYOUT
     int positionY = 70;
     currentTimeLabel.setBounds(20, positionY, 60, 20);
     totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
@@ -199,6 +225,16 @@ void PlayerGUI::resized()
 PlayerGUI::~PlayerGUI()
 {
     stopTimer();
+    if (propertiesFile)
+    {
+        propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
+        propertiesFile->setValue("lastPosition", playerAudio.getPosition());
+        propertiesFile->setValue("volume", volumeSlider.getValue());
+        propertiesFile->setValue("speed", speedslider.getValue());
+        propertiesFile->setValue("totalTime", totalTimeLabel.getTextValue());
+        propertiesFile->setValue("mutedState", isMuted);
+        propertiesFile->saveIfNeeded(); // ✅ always save on close
+    }
 }
 
 void PlayerGUI::buttonClicked(juce::Button* button)
@@ -223,6 +259,11 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                     totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
                     currentTimeLabel.setText("00:00", juce::dontSendNotification);
                     positionSlider.setValue(0.0, juce::dontSendNotification);
+                    PlayButton.setImages(false, true, true,
+                        pauseimage, 1.0f, juce::Colours::transparentBlack,
+                        pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                        playimage, 1.0f, juce::Colours::white.withAlpha(0.6f)
+                    );
                 }
             });
     }
@@ -275,6 +316,52 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         }
     }
 
+    if (button == &loadLast)
+    {
+        auto lastPath = propertiesFile->getValue("lastFilePath");
+        if (lastPath.isEmpty())
+            return;
+
+        lastFile = juce::File(lastPath);
+        
+        if (lastFile.existsAsFile())
+        {
+            playerAudio.loadFile(lastFile);
+
+            juce::Timer::callAfterDelay(300, [this]()
+                {
+                    playerAudio.setGain(lastVolume);
+                    playerAudio.setSpeed(lastSpeed);
+                    playerAudio.setPosition(lastPosition);
+
+                    if (mutedState)
+                    {
+                        previousGain = lastVolume;
+                        playerAudio.setGain(0.0f);
+                        MuteButton.setImages(false, true, true,
+                            mutedImage, 1.0f, juce::Colours::transparentBlack,
+                            mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                            unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f)
+                        );
+                    }
+                    else
+                    {
+                        MuteButton.setImages(false, true, true,
+                            unmutedImage, 1.0f, juce::Colours::transparentBlack,
+                            unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                            mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f)
+                        );
+                    }
+
+                    volumeSlider.setValue(lastVolume, juce::dontSendNotification);
+                    speedslider.setValue(lastSpeed, juce::dontSendNotification);
+                    totalTimeLabel.setText(lastFullTime, juce::dontSendNotification);
+                    currentTimeLabel.setText(formatTime(lastPosition), juce::dontSendNotification);
+                    if (auto totalLength = playerAudio.getLengthInSeconds(); totalLength > 0.0)
+                        positionSlider.setValue(lastPosition / totalLength, juce::dontSendNotification);
+                });
+        }
+    }
     if (button == &PlayButton)
     {
         if (playerAudio.isPlaying())
@@ -376,6 +463,7 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         float v = (float)slider->getValue();
         playerAudio.setGain(v);
         volumeLabel.setText("Volume: " + juce::String((double)v, 2), juce::dontSendNotification);
+
     }
     else if (slider == &speedslider)
     {
@@ -403,6 +491,21 @@ void PlayerGUI::timerCallback()
     if (!isDraggingSlider)
     {
         updatePositionSlider();
+    }
+    static int counter = 0;
+    if (++counter >= 500)
+    {
+        if (propertiesFile)
+        {
+            propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
+            propertiesFile->setValue("lastPosition", playerAudio.getPosition());
+            propertiesFile->setValue("volume", volumeSlider.getValue());
+            propertiesFile->setValue("speed", speedslider.getValue());
+			propertiesFile->setValue("totalTime", totalTimeLabel.getTextValue());
+			propertiesFile->setValue("mutedState", isMuted);
+            propertiesFile->saveIfNeeded();
+        }
+        counter = 0;
     }
 }
 

@@ -1,19 +1,8 @@
-﻿/*
-  ==============================================================================
-
-    PlayerAudio.cpp
-    Created: 20 Oct 2025 2:41:11pm
-    Author:  Lenovo LOQ
-
-  ==============================================================================
-*/
-
-#include "PlayerAudio.h"
+﻿#include "PlayerAudio.h"
 
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
-
 }
 
 PlayerAudio::~PlayerAudio()
@@ -43,65 +32,42 @@ bool PlayerAudio::loadFile(const juce::File& file)
     {
         if (auto* reader = formatManager.createReaderFor(file))
         {
-            // 🔑 Disconnect old source first
             transportSource.stop();
             transportSource.setSource(nullptr);
             readerSource.reset();
 
-            // Create new reader source
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
 
-            // Attach safely to transportSource (resampler already wraps transportSource)
-            transportSource.setSource(readerSource.get(),
-                0,
-                nullptr,
-                reader->sampleRate);
+            transportSource.setSource(readerSource.get(), 0, nullptr, reader->sampleRate);
+            lastLoadedFile = file;
             transportSource.start();
+            return true;
         }
     }
-    return true;
+    return false;
 }
-void PlayerAudio::start()
-{
-    transportSource.start();
-}
-void PlayerAudio::stop()
-{
-    transportSource.stop();
-}
-void PlayerAudio::setGain(float gain)
-{
-    transportSource.setGain(gain);
-}
-void PlayerAudio::setPosition(double pos)
-{
-    transportSource.setPosition(pos);
-}
-double PlayerAudio::getPosition() const
-{
-    return transportSource.getCurrentPosition();
-}
-double PlayerAudio::getLength() const
-{
-    return transportSource.getLengthInSeconds();
-}
-bool PlayerAudio::isPlaying() const
-{
-    return transportSource.isPlaying();
-}
+
+void PlayerAudio::start() { transportSource.start(); }
+void PlayerAudio::stop() { transportSource.stop(); }
+void PlayerAudio::setGain(float gain) { transportSource.setGain(gain); }
+void PlayerAudio::setPosition(double pos) { transportSource.setPosition(pos); }
+double PlayerAudio::getPosition() const { return transportSource.getCurrentPosition(); }
+double PlayerAudio::getLength() const { return transportSource.getLengthInSeconds(); }
+bool PlayerAudio::isPlaying() const { return transportSource.isPlaying(); }
+
 void PlayerAudio::setLooping(bool f)
 {
     isLooping = f;
-
     if (readerSource)
         readerSource->setLooping(f);
-
     transportSource.setLooping(f);
 }
+
 double PlayerAudio::getLengthInSeconds()
 {
     return transportSource.getLengthInSeconds();
 }
+
 void PlayerAudio::setSpeed(float ratio)
 {
     ratio = juce::jlimit(0.25f, 4.0f, ratio);

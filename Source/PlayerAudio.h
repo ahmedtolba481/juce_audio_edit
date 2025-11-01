@@ -7,6 +7,8 @@ public:
     PlayerAudio();
     ~PlayerAudio();
 
+ 
+
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
@@ -24,12 +26,15 @@ public:
     void setSpeed(float ratio);
     juce::String formatTime(double timeInSeconds);
     void updatePositionSlider();
+    const juce::File& getLastLoadedFile() const { return lastLoadedFile; } // Add this getter to allow access to lastLoadedFile from PlayerGUI
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::ResamplingAudioSource resampler{ &transportSource, false, 2 };
     juce::AudioTransportSource transportSource;
     bool isLooping = false;
+    juce::File lastLoadedFile;
+
 
     // JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 };

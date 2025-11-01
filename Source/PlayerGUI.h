@@ -6,6 +6,7 @@ class PlayerGUI : public juce::Component,
     public juce::Button::Listener,
     public juce::Slider::Listener,
     public juce::Timer  // ADD THIS
+    
 {
 public:
     PlayerGUI();
@@ -25,7 +26,16 @@ private:
     bool isLooping = false;
     float previousGain = 0.4f;
     
+    juce::File lastFile;
+    double lastPosition = 0.0;
+    double lastVolume = 0.5;
+    double lastSpeed = 1.0;
+    juce::String lastFullTime;
+    bool mutedState = false;
     // GUI elements
+
+
+ 
     juce::ImageButton loadButton;
     juce::Image loadimage;
     juce::ImageButton PlayButton;
@@ -47,7 +57,7 @@ private:
     juce::Image forwardimage;
     juce::ImageButton backwardButton;
     juce::Image backwardimage;
-    
+	juce::TextButton loadLast{ "Load Last Session" };
     juce::Slider volumeSlider;
     juce::Slider speedslider;
     juce::Label volumeLabel;
@@ -68,6 +78,7 @@ private:
     // ADD THESE HELPER METHODS
     juce::String formatTime(double timeInSeconds);
     void updatePositionSlider();
+    std::unique_ptr<juce::PropertiesFile> propertiesFile;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
