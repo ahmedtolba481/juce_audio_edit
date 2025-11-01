@@ -30,6 +30,109 @@ void PlayerGUI::paint(juce::Graphics& g)
     // Draw a subtle separator line
     g.setColour(juce::Colour(0xFF1A252F));
     g.drawLine(0, 110, (float)getWidth(), 110, 2.0f);
+
+    // Draw A-B loop markers on the position slider
+    drawABLoopMarkers(g);
+}
+
+void PlayerGUI::drawABLoopMarkers(juce::Graphics& g)
+{
+    if (playerAudio.getLengthInSeconds() <= 0.0)
+        return;
+
+    auto sliderBounds = positionSlider.getBounds();
+    double totalLength = playerAudio.getLengthInSeconds();
+
+    // Get the actual track bounds (accounting for thumb width and padding)
+    // JUCE sliders have internal padding, so we need to calculate the actual usable range
+    const int thumbWidth = 20; // Approximate thumb width
+    const int sliderPadding = thumbWidth / 2;
+    
+    int trackX = sliderBounds.getX() + sliderPadding;
+    int trackWidth = sliderBounds.getWidth() - thumbWidth;
+    int trackY = sliderBounds.getY();
+    int trackHeight = sliderBounds.getHeight();
+
+    // Draw A-B loop region (shaded area between A and B)
+    if (playerAudio.hasValidABLoop())
+    {
+        double pointA = playerAudio.getPointA();
+        double pointB = playerAudio.getPointB();
+
+        // Calculate normalized positions
+        double normA = pointA / totalLength;
+        double normB = pointB / totalLength;
+
+        // Calculate pixel positions using the corrected track bounds
+        int xA = trackX + static_cast<int>(normA * trackWidth);
+        int xB = trackX + static_cast<int>(normB * trackWidth);
+
+        // Draw shaded region between A and B
+        juce::Rectangle<int> loopRegion(xA, trackY - 10, 
+                                        xB - xA, trackHeight + 20);
+        g.setColour(juce::Colour(0x3000FF00)); // Semi-transparent green
+        g.fillRect(loopRegion);
+
+        // Draw border around loop region
+        g.setColour(juce::Colour(0x8000FF00));
+        g.drawRect(loopRegion, 2);
+    }
+
+    // Draw Point A marker
+    if (playerAudio.isPositionSetA())
+    {
+        double pointA = playerAudio.getPointA();
+        double normA = pointA / totalLength;
+        int xA = trackX + static_cast<int>(normA * trackWidth);
+
+        // Draw A marker - triangle pointing down
+        juce::Path markerA;
+        markerA.addTriangle(
+            static_cast<float>(xA), static_cast<float>(trackY - 15),
+            static_cast<float>(xA - 8), static_cast<float>(trackY - 5),
+            static_cast<float>(xA + 8), static_cast<float>(trackY - 5)
+        );
+        g.setColour(juce::Colour(0xFF3498DB)); // Blue
+        g.fillPath(markerA);
+
+        // Draw vertical line from marker
+        g.setColour(juce::Colour(0xFF3498DB));
+        g.drawLine(static_cast<float>(xA), static_cast<float>(trackY - 5),
+                   static_cast<float>(xA), static_cast<float>(trackY + trackHeight + 5), 2.0f);
+
+        // Draw "A" label
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+        g.drawText("A", xA - 10, trackY - 25, 20, 15, juce::Justification::centred);
+    }
+
+    // Draw Point B marker
+    if (playerAudio.isPositionSetB())
+    {
+        double pointB = playerAudio.getPointB();
+        double normB = pointB / totalLength;
+        int xB = trackX + static_cast<int>(normB * trackWidth);
+
+        // Draw B marker - triangle pointing down
+        juce::Path markerB;
+        markerB.addTriangle(
+            static_cast<float>(xB), static_cast<float>(trackY - 15),
+            static_cast<float>(xB - 8), static_cast<float>(trackY - 5),
+            static_cast<float>(xB + 8), static_cast<float>(trackY - 5)
+        );
+        g.setColour(juce::Colour(0xFFE74C3C)); // Red
+        g.fillPath(markerB);
+
+        // Draw vertical line from marker
+        g.setColour(juce::Colour(0xFFE74C3C));
+        g.drawLine(static_cast<float>(xB), static_cast<float>(trackY - 5),
+                   static_cast<float>(xB), static_cast<float>(trackY + trackHeight + 5), 2.0f);
+
+        // Draw "B" label
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
+        g.drawText("B", xB - 10, trackY - 25, 20, 15, juce::Justification::centred);
+    }
 }
 
 PlayerGUI::PlayerGUI()
@@ -47,13 +150,21 @@ PlayerGUI::PlayerGUI()
 
     propertiesFile = std::make_unique<juce::PropertiesFile>(options);
     
-    // Playlist Box
-    addAndMakeVisible(addFilesButton);
+    // Playlist Box with improved styling
+    playlistBox.setRowHeight(28);
+    playlistBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF2C3E50));
+    playlistBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF34495E));
+    playlistBox.setModel(this);
     addAndMakeVisible(playlistBox);
+    
+    addFilesButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
+    addFilesButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addAndMakeVisible(addFilesButton);
 	addFilesButton.addListener(this);
     
-    
-    // Last Session
+    // Last Session button with improved styling
+    loadLast.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF9B59B6));
+    loadLast.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     addAndMakeVisible(loadLast);
     loadLast.addListener(this);
 
@@ -150,80 +261,98 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(backwardButton);
     backwardButton.addListener(this);
 
-    // Volume slider
+    // Volume slider with improved styling
     volumeSlider.setRange(0.0, 10.0, 0.1);
     volumeSlider.setValue(1.00);
-    volumeSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::black);
+    volumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    volumeSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+    volumeSlider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xFF34495E));
+    volumeSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF3498DB));
+    volumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFF2980B9));
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
-    // Volume label
+    // Volume label with enhanced styling
     volumeLabel.setText("Volume: 1.00", juce::dontSendNotification);
-    volumeLabel.setColour(juce::Label::textColourId, juce::Colours::black);
+    volumeLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
+    volumeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    volumeLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(volumeLabel);
 
-    // Speed slider
+    // Speed slider with improved styling
     speedslider.setRange(0.25, 4.0, 0.01);
     speedslider.setValue(1.0);
-    speedslider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::black);
+    speedslider.setSliderStyle(juce::Slider::LinearHorizontal);
+    speedslider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    speedslider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+    speedslider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xFF34495E));
+    speedslider.setColour(juce::Slider::trackColourId, juce::Colour(0xFFE67E22));
+    speedslider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFFD35400));
     speedslider.addListener(this);
     addAndMakeVisible(speedslider);
 
-    // Speed label
+    // Speed label with enhanced styling
     speedLabel.setText("Speed: 1.00x", juce::dontSendNotification);
-    speedLabel.setColour(juce::Label::textColourId, juce::Colours::black);
+    speedLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
+    speedLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    speedLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(speedLabel);
 
-    // Position slider and time labels
+    // Position slider with improved styling
     positionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     positionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     positionSlider.setRange(0.0, 1.0, 0.001);
-    positionSlider.setColour(juce::Slider::trackColourId, juce::Colours::blue);
-    positionSlider.setColour(juce::Slider::thumbColourId, juce::Colours::darkblue);
+    positionSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF34495E));
+    positionSlider.setColour(juce::Slider::backgroundColourId, juce::Colour(0xFFBDC3C7));
+    positionSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFF2980B9));
     positionSlider.addListener(this);
     addAndMakeVisible(positionSlider);
 
+    // Time labels with improved styling
     currentTimeLabel.setText("00:00", juce::dontSendNotification);
     currentTimeLabel.setJustificationType(juce::Justification::centredLeft);
-    currentTimeLabel.setColour(juce::Label::textColourId, juce::Colours::black);
+    currentTimeLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    currentTimeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
     addAndMakeVisible(currentTimeLabel);
 
     totalTimeLabel.setText("00:00", juce::dontSendNotification);
     totalTimeLabel.setJustificationType(juce::Justification::centredRight);
-    totalTimeLabel.setColour(juce::Label::textColourId, juce::Colours::black);
+    totalTimeLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    totalTimeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
     addAndMakeVisible(totalTimeLabel);
 
     // Metadata display labels with improved styling
     metadataTitleLabel.setText("No file loaded", juce::dontSendNotification);
-    metadataTitleLabel.setFont(juce::Font(20.0f, juce::Font::bold));
+    metadataTitleLabel.setFont(juce::FontOptions(22.0f, juce::Font::bold));
     metadataTitleLabel.setJustificationType(juce::Justification::centred);
     metadataTitleLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     metadataTitleLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataTitleLabel);
 
     metadataArtistLabel.setText("", juce::dontSendNotification);
-    metadataArtistLabel.setFont(juce::Font(15.0f, juce::Font::plain));
+    metadataArtistLabel.setFont(juce::FontOptions(16.0f, juce::Font::plain));
     metadataArtistLabel.setJustificationType(juce::Justification::centred);
     metadataArtistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFECF0F1));
     metadataArtistLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataArtistLabel);
 
     metadataAlbumLabel.setText("", juce::dontSendNotification);
-    metadataAlbumLabel.setFont(juce::Font(13.0f, juce::Font::italic));
+    metadataAlbumLabel.setFont(juce::FontOptions(14.0f, juce::Font::italic));
     metadataAlbumLabel.setJustificationType(juce::Justification::centred);
     metadataAlbumLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFBDC3C7));
     metadataAlbumLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataAlbumLabel);
 
     metadataInfoLabel.setText("", juce::dontSendNotification);
-    metadataInfoLabel.setFont(juce::Font(12.0f, juce::Font::plain));
+    metadataInfoLabel.setFont(juce::FontOptions(12.0f, juce::Font::plain));
     metadataInfoLabel.setJustificationType(juce::Justification::centred);
     metadataInfoLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF95A5A6));
     metadataInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataInfoLabel);
 
-    // Start timer to update position slider
-    startTimer(10);
+    // Start timer to update position slider and markers
+    startTimer(50); // Update every 50ms for smooth marker display
 
     // ====== RESTORE LAST SESSION ======
     auto lastFilePath = propertiesFile->getValue("lastFilePath");
@@ -233,16 +362,48 @@ PlayerGUI::PlayerGUI()
     lastFullTime = propertiesFile->getValue("totalTime", "00:00");
     mutedState = propertiesFile->getBoolValue("mutedState", false);
     lastFile = juce::File(lastFilePath);
+
+    // A-B Loop controls with improved styling
+    setPointAButton.addListener(this);
+    setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
+    setPointAButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    setPointAButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF2980B9));
+    addAndMakeVisible(setPointAButton);
+
+    setPointBButton.addListener(this);
+    setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
+    setPointBButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    setPointBButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFC0392B));
+    addAndMakeVisible(setPointBButton);
+
+    clearABButton.addListener(this);
+    clearABButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF95A5A6));
+    clearABButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addAndMakeVisible(clearABButton);
+
+    enableABLoopButton.addListener(this);
+    enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
+    enableABLoopButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    enableABLoopButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF27AE60));
+    addAndMakeVisible(enableABLoopButton);
+
+    abLoopInfoLabel.setText("A-B Loop: Not set", juce::dontSendNotification);
+    abLoopInfoLabel.setJustificationType(juce::Justification::centred);
+    abLoopInfoLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    abLoopInfoLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    abLoopInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xFF34495E));
+    abLoopInfoLabel.setColour(juce::Label::outlineColourId, juce::Colour(0xFF2C3E50));
+    addAndMakeVisible(abLoopInfoLabel);
 }
 
 void PlayerGUI::resized()
 {
     // Metadata section at the top (0-110)
     int metadataY = 10;
-    metadataTitleLabel.setBounds(20, metadataY, getWidth() - 40, 26);
-    metadataArtistLabel.setBounds(20, metadataY + 32, getWidth() - 40, 22);
-    metadataAlbumLabel.setBounds(20, metadataY + 56, getWidth() - 40, 20);
-    metadataInfoLabel.setBounds(20, metadataY + 78, getWidth() - 40, 18);
+    metadataTitleLabel.setBounds(20, metadataY, getWidth() - 40, 28);
+    metadataArtistLabel.setBounds(20, metadataY + 34, getWidth() - 40, 24);
+    metadataAlbumLabel.setBounds(20, metadataY + 60, getWidth() - 40, 22);
+    metadataInfoLabel.setBounds(20, metadataY + 84, getWidth() - 40, 20);
 
     // Control buttons below metadata (starting at 125)
     int y = 125;
@@ -265,24 +426,39 @@ void PlayerGUI::resized()
     forwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
 	loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
     addFilesButton.setBounds(startX + (buttonWidth + spacing) * 10, y, buttonWidth, buttonHeight);
-    playlistBox.setRowHeight(24);
-    playlistBox.setModel(this);
-    playlistBox.setBounds(20, 350, getWidth() - 40, getHeight() - 370);
 
-
-    // Position slider layout (below buttons)
-    int positionY = 175;
+    // Position slider layout with extra space for markers (below buttons)
+    int positionY = 185; // Increased from 175 to make room for markers
     currentTimeLabel.setBounds(20, positionY, 60, 20);
     totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
     positionSlider.setBounds(85, positionY, getWidth() - 170, 20);
 
     // Volume controls
-    volumeLabel.setBounds(20, 210, 200, 20);
-    volumeSlider.setBounds(20, 235, getWidth() - 40, 30);
+    volumeLabel.setBounds(20, 220, 80, 25);
+    volumeSlider.setBounds(110, 220, getWidth() - 130, 25);
 
     // Speed controls
-    speedLabel.setBounds(20, 275, 200, 20);
-    speedslider.setBounds(20, 300, getWidth() - 40, 30);
+    speedLabel.setBounds(20, 255, 80, 25);
+    speedslider.setBounds(110, 255, getWidth() - 130, 25);
+
+    // A-B Loop buttons
+    int abLoopY = 290;
+    int abLoopButtonWidth = 100;
+    int abLoopButtonHeight = 32;
+    int abLoopSpacing = 10;
+
+    int totalABWidth = 4 * abLoopButtonWidth + 3 * abLoopSpacing;
+    int abStartX = (getWidth() - totalABWidth) / 2;
+
+    setPointAButton.setBounds(abStartX, abLoopY, abLoopButtonWidth, abLoopButtonHeight);
+    setPointBButton.setBounds(abStartX + abLoopButtonWidth + abLoopSpacing, abLoopY, abLoopButtonWidth, abLoopButtonHeight);
+    clearABButton.setBounds(abStartX + 2 * (abLoopButtonWidth + abLoopSpacing), abLoopY, abLoopButtonWidth, abLoopButtonHeight);
+    enableABLoopButton.setBounds(abStartX + 3 * (abLoopButtonWidth + abLoopSpacing), abLoopY, abLoopButtonWidth, abLoopButtonHeight);
+
+    abLoopInfoLabel.setBounds(20, abLoopY + abLoopButtonHeight + 8, getWidth() - 40, 26);
+
+    // Playlist box
+    playlistBox.setBounds(20, abLoopY + abLoopButtonHeight + 42, getWidth() - 40, getHeight() - (abLoopY + abLoopButtonHeight + 62));
 }
 
 PlayerGUI::~PlayerGUI()
@@ -336,14 +512,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                         metadataInfoLabel.setText("", juce::dontSendNotification);
                     }
                 }
-                playerAudio.loadFile(file);
-                // Update total time label
-                double totalLength = playerAudio.getLengthInSeconds();
-                totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
-                currentTimeLabel.setText("00:00", juce::dontSendNotification);
-                positionSlider.setValue(0.0, juce::dontSendNotification);
-
-                updateMetadataDisplay();
+                repaint(); // Repaint to show/hide markers
             }
     );
 }
@@ -433,22 +602,18 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 
             juce::Timer::callAfterDelay(300, [this]()
                 {
-                    playerAudio.setSpeed(lastSpeed);
+                    playerAudio.setSpeed(static_cast<float>(lastSpeed));
                     playerAudio.setPosition(lastPosition);
 
-                    // ✅ FIXED: Set isMuted state and previousGain properly
                     isMuted = mutedState;
                     
                     if (mutedState)
                     {
-                        // Store the actual volume as previousGain
                         previousGain = (float)lastVolume;
-                        // Set audio to muted
                         playerAudio.setGain(0.0f);
-                        // Show slider at 0
                         volumeSlider.setValue(0.0, juce::dontSendNotification);
+                        // ✅ UPDATE: Update volume label
                         volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
-                        // Update mute button icon to show muted state
                         MuteButton.setImages(false, true, true,
                             mutedImage, 1.0f, juce::Colours::transparentBlack,
                             mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
@@ -457,13 +622,11 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                     }
                     else
                     {
-                        // Not muted - set volume normally
                         playerAudio.setGain((float)lastVolume);
                         volumeSlider.setValue(lastVolume, juce::dontSendNotification);
-                        volumeLabel.setText("Volume: " + juce::String(lastVolume, 2), juce::dontSendNotification);
-                        // ✅ FIXED: Initialize previousGain even when not muted
                         previousGain = (float)lastVolume;
-                        // Update mute button icon to show unmuted state
+                        // ✅ UPDATE: Update volume label
+                        volumeLabel.setText("Volume: " + juce::String(lastVolume, 2), juce::dontSendNotification);
                         MuteButton.setImages(false, true, true,
                             unmutedImage, 1.0f, juce::Colours::transparentBlack,
                             unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
@@ -472,7 +635,9 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                     }
 
                     speedslider.setValue(lastSpeed, juce::dontSendNotification);
+                    // ✅ UPDATE: Update speed label
                     speedLabel.setText("Speed: " + juce::String(lastSpeed, 2) + "x", juce::dontSendNotification);
+                    
                     totalTimeLabel.setText(lastFullTime, juce::dontSendNotification);
                     currentTimeLabel.setText(formatTime(lastPosition), juce::dontSendNotification);
                     if (auto totalLength = playerAudio.getLengthInSeconds(); totalLength > 0.0)
@@ -510,9 +675,9 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     {
         if (isMuted)
         {
-            // Unmuting - restore previous gain
             playerAudio.setGain(previousGain);
             volumeSlider.setValue(previousGain, juce::dontSendNotification);
+            // ✅ UPDATE: Update volume label when unmuting
             volumeLabel.setText("Volume: " + juce::String((double)previousGain, 2), juce::dontSendNotification);
             isMuted = false;
             MuteButton.setImages(false, true, true,
@@ -523,10 +688,10 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         }
         else
         {
-            // Muting - save current gain
             previousGain = (float)volumeSlider.getValue();
             playerAudio.setGain(0.0f);
             volumeSlider.setValue(0.0, juce::dontSendNotification);
+            // ✅ UPDATE: Update volume label when muting
             volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
             isMuted = true;
             MuteButton.setImages(false, true, true,
@@ -578,6 +743,55 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 
         playerAudio.setPosition(newPos);
     }
+
+    // A-B Loop button actions
+    if (button == &setPointAButton)
+    {
+        if (playerAudio.isPositionSetA())
+        {
+            playerAudio.clearPositionA();
+            setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
+        }
+        else
+        {
+            playerAudio.setPointA(playerAudio.getPosition());
+            setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2980B9));
+        }
+        updateABLoopDisplay();
+        repaint(); // Repaint to show/hide markers
+    }
+    else if (button == &setPointBButton)
+    {
+        if (playerAudio.isPositionSetB())
+        {
+            playerAudio.clearPositionB();
+            setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
+        }
+        else
+        {
+            playerAudio.setPointB(playerAudio.getPosition());
+            setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFC0392B));
+        }
+        updateABLoopDisplay();
+        repaint(); // Repaint to show/hide markers
+    }
+    else if (button == &clearABButton)
+    {
+        playerAudio.clearPositionA();
+        playerAudio.clearPositionB();
+        setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
+        setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
+        updateABLoopDisplay();
+        repaint(); // Repaint to clear markers
+    }
+    else if (button == &enableABLoopButton)
+    {
+        isABLoopEnabled = !isABLoopEnabled;
+        playerAudio.setABLoopEnabled(isABLoopEnabled);
+        enableABLoopButton.setToggleState(isABLoopEnabled, juce::dontSendNotification);
+        updateABLoopDisplay();
+        repaint(); // Repaint to update loop region
+    }
 }
 
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
@@ -586,9 +800,10 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
     {
         float v = (float)slider->getValue();
         playerAudio.setGain(v);
-        volumeLabel.setText("Volume: " + juce::String((double)v, 2), juce::dontSendNotification);
+        
+        // ✅ UPDATE: Add this line to update the volume label
+        volumeLabel.setText("Volume: " + juce::String(v, 2), juce::dontSendNotification);
 
-        // ✅ FIXED: Update previousGain when user manually changes volume (and not muted)
         if (!isMuted)
         {
             previousGain = v;
@@ -598,7 +813,9 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
     {
         float s = (float)speedslider.getValue();
         playerAudio.setSpeed(s);
-        speedLabel.setText("Speed: " + juce::String((double)s, 2) + "x", juce::dontSendNotification);
+        
+        // ✅ UPDATE: Add this line to update the speed label
+        speedLabel.setText("Speed: " + juce::String(s, 2) + "x", juce::dontSendNotification);
     }
     else if (slider == &positionSlider)
     {
@@ -618,8 +835,12 @@ void PlayerGUI::timerCallback()
     {
         updatePositionSlider();
     }
+    
+    // Always repaint to keep markers updated
+    repaint();
+    
     static int counter = 0;
-    if (++counter >= 500)
+    if (++counter >= 100) // Every 5 seconds (100 * 50ms)
     {
         if (propertiesFile)
         {
@@ -658,25 +879,21 @@ void PlayerGUI::updateMetadataDisplay()
 {
     const AudioMetadata& metadata = playerAudio.getMetadata();
 
-    // Display title (or filename if no metadata)
     if (metadata.hasMetadata && !metadata.title.isEmpty())
         metadataTitleLabel.setText(metadata.title, juce::dontSendNotification);
     else
         metadataTitleLabel.setText(metadata.filename, juce::dontSendNotification);
 
-    // Display artist
     if (metadata.hasMetadata && !metadata.artist.isEmpty())
         metadataArtistLabel.setText(metadata.artist, juce::dontSendNotification);
     else
         metadataArtistLabel.setText("Unknown Artist", juce::dontSendNotification);
 
-    // Display album
     if (metadata.hasMetadata && !metadata.album.isEmpty())
         metadataAlbumLabel.setText("Album: " + metadata.album, juce::dontSendNotification);
     else
         metadataAlbumLabel.setText("", juce::dontSendNotification);
 
-    // Display additional info (bitrate, sample rate, channels, genre)
     juce::String info;
     if (metadata.bitrate > 0)
         info << metadata.bitrate << " kbps";
@@ -699,8 +916,6 @@ void PlayerGUI::updateMetadataDisplay()
     metadataInfoLabel.setText(info, juce::dontSendNotification);
 }
 
-
-
 int PlayerGUI::getNumRows()
 {
     return playlistFiles.size();
@@ -714,11 +929,12 @@ void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics& g,
         auto filename = playlistFiles[rowNumber].getFileName();
 
         if (rowIsSelected)
-            g.fillAll(juce::Colours::lightblue);
+            g.fillAll(juce::Colour(0xFF3498DB));
         else
-            g.fillAll(juce::Colours::transparentBlack);
+            g.fillAll(rowNumber % 2 == 0 ? juce::Colour(0xFF2C3E50) : juce::Colour(0xFF34495E));
 
         g.setColour(juce::Colours::white);
+        g.setFont(juce::FontOptions(13.0f, juce::Font::plain));
         g.drawText(filename, 10, 0, width - 10, height, juce::Justification::centredLeft);
     }
 }
@@ -730,5 +946,35 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
         auto file = playlistFiles[lastRowSelected];
         playerAudio.loadFile(file);
         playerAudio.start();
+        updateMetadataDisplay();
+    }
+}
+
+void PlayerGUI::updateABLoopDisplay()
+{
+    if (playerAudio.hasValidABLoop())
+    {
+        double pointA = playerAudio.getPointA();
+        double pointB = playerAudio.getPointB();
+        
+        juce::String info = "A: " + formatTime(pointA) + "  →  B: " + formatTime(pointB);
+        abLoopInfoLabel.setText(info, juce::dontSendNotification);
+        
+        if (playerAudio.isABLoopEnabled())
+        {
+            enableABLoopButton.setButtonText("A-B Loop: ON");
+            enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF27AE60));
+        }
+        else
+        {
+            enableABLoopButton.setButtonText("A-B Loop: OFF");
+            enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
+        }
+    }
+    else
+    {
+        abLoopInfoLabel.setText("A-B Loop: Not set", juce::dontSendNotification);
+        enableABLoopButton.setButtonText("A-B Loop: OFF");
+        enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
     }
 }

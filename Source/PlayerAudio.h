@@ -48,8 +48,29 @@ public:
 
     const AudioMetadata& getMetadata() const { return metadata; }
 
-
     juce::File getLastLoadedFile() const { return lastLoadedFile; }
+
+    // A-B Loop functionality
+    void setABLoopEnabled(bool enabled);
+    bool isABLoopEnabled() const { return abLoopEnabled; }
+    void setPointA(double timeInSeconds);
+    void setPointB(double timeInSeconds);
+    void clearABLoop();
+    double getPointA() const { return pointA; }
+    double getPointB() const { return pointB; }
+    bool hasValidABLoop() const { return pointA >= 0.0 && pointB > pointA; }
+   
+    /** Returns true if position A is set for A-B looping */
+    bool isPositionSetA() const;
+    
+    /** Returns true if position B is set for A-B looping */
+    bool isPositionSetB() const;
+    
+    /** Clears position A */
+    void clearPositionA();
+    
+    /** Clears position B */
+    void clearPositionB();
 
 private:
     juce::AudioFormatManager formatManager;
@@ -58,6 +79,12 @@ private:
     juce::AudioTransportSource transportSource;
 
     bool isLooping = false;
+
+    // A-B Loop members
+    bool abLoopEnabled = false;
+    double pointA = -1.0;  // -1 means not set
+    double pointB = -1.0;  // -1 means not set
+    void checkABLoop();
 
     // Metadata
     juce::File lastLoadedFile;

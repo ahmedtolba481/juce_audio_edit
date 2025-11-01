@@ -18,6 +18,12 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
     resampler.getNextAudioBlock(bufferToFill);
+    
+    // Check A-B loop boundaries after getting audio block
+    if (abLoopEnabled && transportSource.isPlaying())
+    {
+        checkABLoop();
+    }
 }
 
 void PlayerAudio::releaseResources()
@@ -118,8 +124,11 @@ bool PlayerAudio::loadFile(const juce::File& file)
                 nullptr,
                 reader->sampleRate);
             transportSource.start();
+            
+            // Clear A-B loop when loading new file
+            clearABLoop();
+            
             return true;
-           
         }
     }
     return false;
@@ -179,4 +188,87 @@ void PlayerAudio::setSpeed(float ratio)
     ratio = juce::jlimit(0.25f, 4.0f, ratio);
     lastSpeed = ratio;
     resampler.setResamplingRatio(ratio);
+}
+
+// A-B Loop Implementation
+void PlayerAudio::setABLoopEnabled(bool enabled)
+{
+    abLoopEnabled = enabled;
+    
+    // If enabling A-B loop, disable standard looping
+    if (abLoopEnabled)
+    {
+        setLooping(false);
+    }
+}
+
+void PlayerAudio::setPointA(double timeInSeconds)
+{
+    double length = getLengthInSeconds();
+    pointA = juce::jlimit(0.0, length, timeInSeconds);
+    
+    // If point B is already set and is before point A, clear it
+    if (pointB >= 0.0 && pointB <= pointA)
+    {
+        pointB = -1.0;
+    }
+}
+
+void PlayerAudio::setPointB(double timeInSeconds)
+{
+    double length = getLengthInSeconds();
+    pointB = juce::jlimit(0.0, length, timeInSeconds);
+    
+    // Ensure point B is after point A
+    if (pointA >= 0.0 && pointB <= pointA)
+    {
+        // Swap if B is set before A
+        std::swap(pointA, pointB);
+    }
+}
+
+void PlayerAudio::clearABLoop()
+{
+    pointA = -1.0;
+    pointB = -1.0;
+    abLoopEnabled = false;
+}
+
+void PlayerAudio::checkABLoop()
+{
+    if (!hasValidABLoop())
+        return;
+    
+    double currentPos = getPosition();
+    
+    // If we've passed point B, jump back to point A
+    if (currentPos >= pointB)
+    {
+        setPosition(pointA);
+    }
+    // If we're somehow before point A, jump to point A
+    else if (currentPos < pointA)
+    {
+        setPosition(pointA);
+    }
+}
+
+bool PlayerAudio::isPositionSetA() const
+{
+    return pointA >= 0.0;
+}
+
+bool PlayerAudio::isPositionSetB() const
+{
+    return pointB >= 0.0;
+}
+
+void PlayerAudio::clearPositionA()
+{
+    pointA = -1.0;
+}
+
+void PlayerAudio::clearPositionB()
+{
+    pointB = -1.0;
 }

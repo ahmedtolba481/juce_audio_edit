@@ -27,6 +27,7 @@ private:
     PlayerAudio playerAudio;
     bool isMuted = false;
     bool isLooping = false;
+    bool isABLoopEnabled = false;
     float previousGain = 0.4f;
     
     juce::File lastFile;
@@ -36,7 +37,6 @@ private:
     juce::String lastFullTime;
     bool mutedState = false;
     // GUI elements
-
 
     juce::ListBox playlistBox;
     juce::TextButton addFilesButton{ "Add Files" };
@@ -64,6 +64,14 @@ private:
     juce::ImageButton backwardButton;
     juce::Image backwardimage;
 	juce::TextButton loadLast{ "Load Last Session" };
+    
+    // A-B Loop controls
+    juce::TextButton setPointAButton{ "Set A" };
+    juce::TextButton setPointBButton{ "Set B" };
+    juce::TextButton clearABButton{ "Clear A-B" };
+    juce::TextButton enableABLoopButton{ "A-B Loop: OFF" };
+    juce::Label abLoopInfoLabel;
+    
     juce::Slider volumeSlider;
     juce::Slider speedslider;
     juce::Label volumeLabel;
@@ -74,7 +82,7 @@ private:
     juce::Label totalTimeLabel;
     bool isDraggingSlider = false;
     
-    // NEW: Metadata display labels
+    // Metadata display labels
     juce::Label metadataTitleLabel;
     juce::Label metadataArtistLabel;
     juce::Label metadataAlbumLabel;
@@ -88,9 +96,10 @@ private:
     
     juce::String formatTime(double timeInSeconds);
     void updatePositionSlider();
+    void updateABLoopDisplay();
+    void drawABLoopMarkers(juce::Graphics& g); // New method for drawing markers
     std::unique_ptr<juce::PropertiesFile> propertiesFile;
     
-    // NEW: Update metadata display
     void updateMetadataDisplay();
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
