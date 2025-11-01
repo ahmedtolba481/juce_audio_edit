@@ -570,7 +570,6 @@ void PlayerGUI::timerCallback()
         {
             propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
             propertiesFile->setValue("lastPosition", playerAudio.getPosition());
-            // ✅ FIXED: Save the actual volume (previousGain) when muted
             propertiesFile->setValue("volume", isMuted ? previousGain : volumeSlider.getValue());
             propertiesFile->setValue("speed", speedslider.getValue());
             propertiesFile->setValue("totalTime", totalTimeLabel.getText());
