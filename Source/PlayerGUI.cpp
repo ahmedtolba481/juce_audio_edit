@@ -18,6 +18,18 @@ void PlayerGUI::releaseResources()
 void PlayerGUI::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::lightgrey);
+    
+    // Draw a decorative header background for metadata section
+    juce::Rectangle<int> headerArea(0, 0, getWidth(), 110);
+    juce::ColourGradient gradient(
+        juce::Colour(0xFF2C3E50), 0, 0,
+        juce::Colour(0xFF34495E), 0, 110.0f, false);
+    g.setGradientFill(gradient);
+    g.fillRect(headerArea);
+    
+    // Draw a subtle separator line
+    g.setColour(juce::Colour(0xFF1A252F));
+    g.drawLine(0, 110, (float)getWidth(), 110, 2.0f);
 }
 
 PlayerGUI::PlayerGUI()
@@ -155,7 +167,7 @@ PlayerGUI::PlayerGUI()
     speedLabel.setColour(juce::Label::textColourId, juce::Colours::black);
     addAndMakeVisible(speedLabel);
 
-    // POSITION SLIDER AND TIME LABEL
+    // Position slider and time labels
     positionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     positionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     positionSlider.setRange(0.0, 1.0, 0.001);
@@ -174,6 +186,35 @@ PlayerGUI::PlayerGUI()
     totalTimeLabel.setColour(juce::Label::textColourId, juce::Colours::black);
     addAndMakeVisible(totalTimeLabel);
 
+    // Metadata display labels with improved styling
+    metadataTitleLabel.setText("No file loaded", juce::dontSendNotification);
+    metadataTitleLabel.setFont(juce::Font(20.0f, juce::Font::bold));
+    metadataTitleLabel.setJustificationType(juce::Justification::centred);
+    metadataTitleLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    metadataTitleLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    addAndMakeVisible(metadataTitleLabel);
+
+    metadataArtistLabel.setText("", juce::dontSendNotification);
+    metadataArtistLabel.setFont(juce::Font(15.0f, juce::Font::plain));
+    metadataArtistLabel.setJustificationType(juce::Justification::centred);
+    metadataArtistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFECF0F1));
+    metadataArtistLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    addAndMakeVisible(metadataArtistLabel);
+
+    metadataAlbumLabel.setText("", juce::dontSendNotification);
+    metadataAlbumLabel.setFont(juce::Font(13.0f, juce::Font::italic));
+    metadataAlbumLabel.setJustificationType(juce::Justification::centred);
+    metadataAlbumLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFBDC3C7));
+    metadataAlbumLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    addAndMakeVisible(metadataAlbumLabel);
+
+    metadataInfoLabel.setText("", juce::dontSendNotification);
+    metadataInfoLabel.setFont(juce::Font(12.0f, juce::Font::plain));
+    metadataInfoLabel.setJustificationType(juce::Justification::centred);
+    metadataInfoLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF95A5A6));
+    metadataInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    addAndMakeVisible(metadataInfoLabel);
+
     // Start timer to update position slider
     startTimer(10);
 
@@ -189,7 +230,15 @@ PlayerGUI::PlayerGUI()
 
 void PlayerGUI::resized()
 {
-    int y = 20;
+    // Metadata section at the top (0-110)
+    int metadataY = 10;
+    metadataTitleLabel.setBounds(20, metadataY, getWidth() - 40, 26);
+    metadataArtistLabel.setBounds(20, metadataY + 32, getWidth() - 40, 22);
+    metadataAlbumLabel.setBounds(20, metadataY + 56, getWidth() - 40, 20);
+    metadataInfoLabel.setBounds(20, metadataY + 78, getWidth() - 40, 18);
+
+    // Control buttons below metadata (starting at 125)
+    int y = 125;
     int buttonWidth = 70;
     int buttonHeight = 35;
     int spacing = 15;
@@ -207,19 +256,20 @@ void PlayerGUI::resized()
     MuteButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
     forwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
     backwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
-    loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
 
-    // POSITION SLIDER LAYOUT
+    // ===== NEW: POSITION SLIDER LAYOUT =====
     int positionY = 70;
     currentTimeLabel.setBounds(20, positionY, 60, 20);
     totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
     positionSlider.setBounds(85, positionY, getWidth() - 170, 20);
 
-    volumeLabel.setBounds(20, 105, 200, 20);
-    volumeSlider.setBounds(20, 130, getWidth() - 40, 30);
+    // Volume controls
+    volumeLabel.setBounds(20, 210, 200, 20);
+    volumeSlider.setBounds(20, 235, getWidth() - 40, 30);
 
-    speedLabel.setBounds(20, 170, 200, 20);
-    speedslider.setBounds(20, 195, getWidth() - 40, 30);
+    // Speed controls
+    speedLabel.setBounds(20, 275, 200, 20);
+    speedslider.setBounds(20, 300, getWidth() - 40, 30);
 }
 
 PlayerGUI::~PlayerGUI()
@@ -244,7 +294,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         fileChooser = std::make_unique<juce::FileChooser>(
             "Select an audio file...",
             juce::File{},
-            "*.wav;*.mp3");
+            "*.wav;*.mp3;*.flac;*.ogg;*.aac;*.m4a");
 
         fileChooser->launchAsync(
             juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
@@ -259,11 +309,6 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                     totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
                     currentTimeLabel.setText("00:00", juce::dontSendNotification);
                     positionSlider.setValue(0.0, juce::dontSendNotification);
-                    PlayButton.setImages(false, true, true,
-                        pauseimage, 1.0f, juce::Colours::transparentBlack,
-                        pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                        playimage, 1.0f, juce::Colours::white.withAlpha(0.6f)
-                    );
                 }
             });
     }
@@ -471,7 +516,6 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         playerAudio.setSpeed(s);
         speedLabel.setText("Speed: " + juce::String((double)s, 2) + "x", juce::dontSendNotification);
     }
-    // ===== NEW: POSITION SLIDER HANDLING =====
     else if (slider == &positionSlider)
     {
         isDraggingSlider = true;
@@ -480,12 +524,10 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         playerAudio.setPosition(newPosition);
         currentTimeLabel.setText(formatTime(newPosition), juce::dontSendNotification);
 
-        // Reset flag after a delay
         juce::Timer::callAfterDelay(100, [this]() { isDraggingSlider = false; });
     }
 }
 
-// ===== NEW: TIMER CALLBACK TO UPDATE POSITION =====
 void PlayerGUI::timerCallback()
 {
     if (!isDraggingSlider)
@@ -509,7 +551,6 @@ void PlayerGUI::timerCallback()
     }
 }
 
-// ===== NEW: UPDATE POSITION SLIDER =====
 void PlayerGUI::updatePositionSlider()
 {
     double totalLength = playerAudio.getLengthInSeconds();
@@ -522,10 +563,54 @@ void PlayerGUI::updatePositionSlider()
     }
 }
 
-// ===== NEW: FORMAT TIME AS MM:SS =====
 juce::String PlayerGUI::formatTime(double timeInSeconds)
 {
     int minutes = static_cast<int>(timeInSeconds) / 60;
     int seconds = static_cast<int>(timeInSeconds) % 60;
     return juce::String::formatted("%02d:%02d", minutes, seconds);
+}
+
+void PlayerGUI::updateMetadataDisplay()
+{
+    const AudioMetadata& metadata = playerAudio.getMetadata();
+    
+    // Display title (or filename if no metadata)
+    if (metadata.hasMetadata && !metadata.title.isEmpty())
+        metadataTitleLabel.setText(metadata.title, juce::dontSendNotification);
+    else
+        metadataTitleLabel.setText(metadata.filename, juce::dontSendNotification);
+    
+    // Display artist
+    if (metadata.hasMetadata && !metadata.artist.isEmpty())
+        metadataArtistLabel.setText(metadata.artist, juce::dontSendNotification);
+    else
+        metadataArtistLabel.setText("Unknown Artist", juce::dontSendNotification);
+    
+    // Display album
+    if (metadata.hasMetadata && !metadata.album.isEmpty())
+        metadataAlbumLabel.setText("Album: " + metadata.album, juce::dontSendNotification);
+    else
+        metadataAlbumLabel.setText("", juce::dontSendNotification);
+    
+    // Display additional info (bitrate, sample rate, channels, genre)
+    juce::String info;
+    if (metadata.bitrate > 0)
+        info << metadata.bitrate << " kbps";
+    if (metadata.sampleRate > 0)
+    {
+        if (!info.isEmpty()) info << " • ";
+        info << (metadata.sampleRate / 1000.0) << " kHz";
+    }
+    if (metadata.channels > 0)
+    {
+        if (!info.isEmpty()) info << " • ";
+        info << metadata.channels << (metadata.channels == 1 ? " channel" : " channels");
+    }
+    if (metadata.hasMetadata && !metadata.genre.isEmpty())
+    {
+        if (!info.isEmpty()) info << " • ";
+        info << metadata.genre;
+    }
+    
+    metadataInfoLabel.setText(info, juce::dontSendNotification);
 }
