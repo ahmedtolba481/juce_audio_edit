@@ -21,9 +21,11 @@ public:
 	bool isPlaying() const;
 	void setLooping(bool f) ;
     double getLengthInSeconds();
+    void setSpeed(float ratio);
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
+    juce::ResamplingAudioSource resampler{ &transportSource, false, 2 };
     juce::AudioTransportSource transportSource;
     bool isLooping = false;
 

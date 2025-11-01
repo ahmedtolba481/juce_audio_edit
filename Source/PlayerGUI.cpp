@@ -129,6 +129,23 @@ PlayerGUI::PlayerGUI()
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
+    // Volume label
+    volumeLabel.setText("Volume: 0.40", juce::dontSendNotification);
+    volumeLabel.setColour(juce::Label::textColourId, juce::Colours::black);
+    addAndMakeVisible(volumeLabel);
+
+    // Speed slider
+    speedslider.setRange(0.25, 4.0, 0.01);
+    speedslider.setValue(1.0);
+    speedslider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::black);
+    speedslider.addListener(this);
+    addAndMakeVisible(speedslider);
+
+    // Speed label
+    speedLabel.setText("Speed: 1.00x", juce::dontSendNotification);
+    speedLabel.setColour(juce::Label::textColourId, juce::Colours::black);
+    addAndMakeVisible(speedLabel);
+
 
 }
 void PlayerGUI::resized()
@@ -152,7 +169,11 @@ void PlayerGUI::resized()
 	forwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
 	backwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
 
+    volumeLabel.setBounds(20, 75, 200, 20);
     volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
+
+    speedLabel.setBounds(20, 140, 200, 20);
+    speedslider.setBounds(20, 165, getWidth() - 40, 30);
 }
 
 PlayerGUI::~PlayerGUI()
@@ -325,5 +346,15 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
 {
     if (slider == &volumeSlider)
-        playerAudio.setGain((float)slider->getValue());
+    {
+        float v = (float)slider->getValue();
+        playerAudio.setGain(v);
+        volumeLabel.setText("Volume: " + juce::String((double)v, 2), juce::dontSendNotification);
+    }
+    else if (slider == &speedslider)
+    {
+        float s = (float)speedslider.getValue();
+        playerAudio.setSpeed(s);
+        speedLabel.setText("Speed: " + juce::String((double)s, 2) + "x", juce::dontSendNotification);
+    }
 }
