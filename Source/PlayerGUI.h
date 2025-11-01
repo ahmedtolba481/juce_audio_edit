@@ -5,7 +5,8 @@
 class PlayerGUI : public juce::Component,
     public juce::Button::Listener,
     public juce::Slider::Listener,
-    public juce::Timer  // ADD THIS
+    public juce::Timer,
+    public juce::ListBoxModel 
 {
 public:
     PlayerGUI();
@@ -18,6 +19,10 @@ public:
     
     void timerCallback() override;
     
+    int getNumRows() override;
+    void paintListBoxItem(int rowNumber, juce::Graphics& g,
+    int width, int height, bool rowIsSelected) override;
+    void selectedRowsChanged(int lastRowSelected) override;
 private:
     PlayerAudio playerAudio;
     bool isMuted = false;
@@ -31,6 +36,11 @@ private:
     juce::String lastFullTime;
     bool mutedState = false;
     // GUI elements
+
+
+    juce::ListBox playlistBox;
+    juce::TextButton addFilesButton{ "Add Files" };
+    juce::Array<juce::File> playlistFiles;
 
     juce::ImageButton loadButton;
     juce::Image loadimage;
