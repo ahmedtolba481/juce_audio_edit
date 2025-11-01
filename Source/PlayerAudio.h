@@ -22,6 +22,8 @@ public:
 	void setLooping(bool f) ;
     double getLengthInSeconds();
     void setSpeed(float ratio);
+    juce::String formatTime(double timeInSeconds);
+    void updatePositionSlider();
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
