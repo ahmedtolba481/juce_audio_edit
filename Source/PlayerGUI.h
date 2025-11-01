@@ -5,7 +5,7 @@
 class PlayerGUI : public juce::Component,
     public juce::Button::Listener,
     public juce::Slider::Listener,
-    public juce::Timer  // ADD THIS
+    public juce::Timer
 {
 public:
     PlayerGUI();
@@ -16,7 +16,6 @@ public:
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
     
-    // ADD THIS METHOD
     void timerCallback() override;
     
 private:
@@ -53,11 +52,16 @@ private:
     juce::Label volumeLabel;
     juce::Label speedLabel;
     
-    // ADD THESE NEW MEMBERS FOR POSITION SLIDER
     juce::Slider positionSlider;
     juce::Label currentTimeLabel;
     juce::Label totalTimeLabel;
     bool isDraggingSlider = false;
+    
+    // NEW: Metadata display labels
+    juce::Label metadataTitleLabel;
+    juce::Label metadataArtistLabel;
+    juce::Label metadataAlbumLabel;
+    juce::Label metadataInfoLabel;
     
     std::unique_ptr<juce::FileChooser> fileChooser;
     
@@ -65,9 +69,11 @@ private:
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
     
-    // ADD THESE HELPER METHODS
     juce::String formatTime(double timeInSeconds);
     void updatePositionSlider();
+    
+    // NEW: Update metadata display
+    void updateMetadataDisplay();
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
