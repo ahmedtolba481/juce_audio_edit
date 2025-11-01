@@ -119,38 +119,48 @@ bool PlayerAudio::loadFile(const juce::File& file)
                 reader->sampleRate);
             transportSource.start();
             return true;
+           
         }
     }
     return false;
 }
+
 void PlayerAudio::start()
 {
     transportSource.start();
 }
+
 void PlayerAudio::stop()
 {
     transportSource.stop();
 }
+
 void PlayerAudio::setGain(float gain)
 {
+    lastVolume = gain;
     transportSource.setGain(gain);
 }
+
 void PlayerAudio::setPosition(double pos)
 {
     transportSource.setPosition(pos);
 }
+
 double PlayerAudio::getPosition() const
 {
     return transportSource.getCurrentPosition();
 }
+
 double PlayerAudio::getLength() const
 {
     return transportSource.getLengthInSeconds();
 }
+
 bool PlayerAudio::isPlaying() const
 {
     return transportSource.isPlaying();
 }
+
 void PlayerAudio::setLooping(bool f)
 {
     isLooping = f;
@@ -167,5 +177,6 @@ double PlayerAudio::getLengthInSeconds()
 void PlayerAudio::setSpeed(float ratio)
 {
     ratio = juce::jlimit(0.25f, 4.0f, ratio);
+    lastSpeed = ratio;
     resampler.setResamplingRatio(ratio);
 }

@@ -60,9 +60,10 @@ private:
     bool isLooping = false;
 
     // Metadata
+    juce::File lastLoadedFile;
+    float lastVolume = 1.0f;
+    float lastSpeed = 1.0f;
     AudioMetadata metadata;
     void extractMetadata(const juce::File& file);
     juce::String convertTagLibString(const TagLib::String& str);
-
-    juce::File lastLoadedFile;
 };

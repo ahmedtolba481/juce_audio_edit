@@ -18,7 +18,7 @@ void PlayerGUI::releaseResources()
 void PlayerGUI::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::lightgrey);
-    
+
     // Draw a decorative header background for metadata section
     juce::Rectangle<int> headerArea(0, 0, getWidth(), 110);
     juce::ColourGradient gradient(
@@ -26,7 +26,7 @@ void PlayerGUI::paint(juce::Graphics& g)
         juce::Colour(0xFF34495E), 0, 110.0f, false);
     g.setGradientFill(gradient);
     g.fillRect(headerArea);
-    
+
     // Draw a subtle separator line
     g.setColour(juce::Colour(0xFF1A252F));
     g.drawLine(0, 110, (float)getWidth(), 110, 2.0f);
@@ -151,14 +151,14 @@ PlayerGUI::PlayerGUI()
     backwardButton.addListener(this);
 
     // Volume slider
-    volumeSlider.setRange(0.0, 1.0, 0.01);
-    volumeSlider.setValue(0.4);
+    volumeSlider.setRange(0.0, 10.0, 0.1);
+    volumeSlider.setValue(1.00);
     volumeSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::black);
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
     // Volume label
-    volumeLabel.setText("Volume: 0.40", juce::dontSendNotification);
+    volumeLabel.setText("Volume: 1.00", juce::dontSendNotification);
     volumeLabel.setColour(juce::Label::textColourId, juce::Colours::black);
     addAndMakeVisible(volumeLabel);
 
@@ -228,7 +228,7 @@ PlayerGUI::PlayerGUI()
     // ====== RESTORE LAST SESSION ======
     auto lastFilePath = propertiesFile->getValue("lastFilePath");
     lastPosition = propertiesFile->getDoubleValue("lastPosition", 0.0);
-    lastVolume = propertiesFile->getDoubleValue("volume", 0.5);
+    lastVolume = propertiesFile->getDoubleValue("volume", 1.0);
     lastSpeed = propertiesFile->getDoubleValue("speed", 1.0);
     lastFullTime = propertiesFile->getValue("totalTime", "00:00");
     mutedState = propertiesFile->getBoolValue("mutedState", false);
@@ -269,7 +269,8 @@ void PlayerGUI::resized()
     playlistBox.setModel(this);
     playlistBox.setBounds(20, 350, getWidth() - 40, getHeight() - 370);
 
- 
+
+    // Position slider layout (below buttons)
     int positionY = 175;
     currentTimeLabel.setBounds(20, positionY, 60, 20);
     totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
@@ -291,9 +292,9 @@ PlayerGUI::~PlayerGUI()
     {
         propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
         propertiesFile->setValue("lastPosition", playerAudio.getPosition());
-        propertiesFile->setValue("volume", volumeSlider.getValue());
+        propertiesFile->setValue("volume", isMuted ? previousGain : volumeSlider.getValue());
         propertiesFile->setValue("speed", speedslider.getValue());
-        propertiesFile->setValue("totalTime", totalTimeLabel.getTextValue());
+        propertiesFile->setValue("totalTime", totalTimeLabel.getText());
         propertiesFile->setValue("mutedState", isMuted);
         propertiesFile->saveIfNeeded();
     }
@@ -335,8 +336,17 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                         metadataInfoLabel.setText("", juce::dontSendNotification);
                     }
                 }
-            });
-    }
+                playerAudio.loadFile(file);
+                // Update total time label
+                double totalLength = playerAudio.getLengthInSeconds();
+                totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
+                currentTimeLabel.setText("00:00", juce::dontSendNotification);
+                positionSlider.setValue(0.0, juce::dontSendNotification);
+
+                updateMetadataDisplay();
+            }
+    );
+}
 
     if (button == &restartButton)
     {
@@ -415,7 +425,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
             return;
 
         lastFile = juce::File(lastPath);
-        
+
         if (lastFile.existsAsFile())
         {
             playerAudio.loadFile(lastFile);
@@ -423,14 +433,22 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 
             juce::Timer::callAfterDelay(300, [this]()
                 {
-                    playerAudio.setGain(lastVolume);
                     playerAudio.setSpeed(lastSpeed);
                     playerAudio.setPosition(lastPosition);
 
+                    // ✅ FIXED: Set isMuted state and previousGain properly
+                    isMuted = mutedState;
+                    
                     if (mutedState)
                     {
-                        previousGain = lastVolume;
+                        // Store the actual volume as previousGain
+                        previousGain = (float)lastVolume;
+                        // Set audio to muted
                         playerAudio.setGain(0.0f);
+                        // Show slider at 0
+                        volumeSlider.setValue(0.0, juce::dontSendNotification);
+                        volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
+                        // Update mute button icon to show muted state
                         MuteButton.setImages(false, true, true,
                             mutedImage, 1.0f, juce::Colours::transparentBlack,
                             mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
@@ -439,6 +457,13 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                     }
                     else
                     {
+                        // Not muted - set volume normally
+                        playerAudio.setGain((float)lastVolume);
+                        volumeSlider.setValue(lastVolume, juce::dontSendNotification);
+                        volumeLabel.setText("Volume: " + juce::String(lastVolume, 2), juce::dontSendNotification);
+                        // ✅ FIXED: Initialize previousGain even when not muted
+                        previousGain = (float)lastVolume;
+                        // Update mute button icon to show unmuted state
                         MuteButton.setImages(false, true, true,
                             unmutedImage, 1.0f, juce::Colours::transparentBlack,
                             unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
@@ -446,8 +471,8 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                         );
                     }
 
-                    volumeSlider.setValue(lastVolume, juce::dontSendNotification);
                     speedslider.setValue(lastSpeed, juce::dontSendNotification);
+                    speedLabel.setText("Speed: " + juce::String(lastSpeed, 2) + "x", juce::dontSendNotification);
                     totalTimeLabel.setText(lastFullTime, juce::dontSendNotification);
                     currentTimeLabel.setText(formatTime(lastPosition), juce::dontSendNotification);
                     if (auto totalLength = playerAudio.getLengthInSeconds(); totalLength > 0.0)
@@ -485,8 +510,10 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     {
         if (isMuted)
         {
+            // Unmuting - restore previous gain
             playerAudio.setGain(previousGain);
-            volumeSlider.setValue(previousGain);
+            volumeSlider.setValue(previousGain, juce::dontSendNotification);
+            volumeLabel.setText("Volume: " + juce::String((double)previousGain, 2), juce::dontSendNotification);
             isMuted = false;
             MuteButton.setImages(false, true, true,
                 unmutedImage, 1.0f, juce::Colours::transparentBlack,
@@ -496,9 +523,11 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         }
         else
         {
+            // Muting - save current gain
             previousGain = (float)volumeSlider.getValue();
             playerAudio.setGain(0.0f);
-            volumeSlider.setValue(0.0);
+            volumeSlider.setValue(0.0, juce::dontSendNotification);
+            volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
             isMuted = true;
             MuteButton.setImages(false, true, true,
                 mutedImage, 1.0f, juce::Colours::transparentBlack,
@@ -559,6 +588,11 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         playerAudio.setGain(v);
         volumeLabel.setText("Volume: " + juce::String((double)v, 2), juce::dontSendNotification);
 
+        // ✅ FIXED: Update previousGain when user manually changes volume (and not muted)
+        if (!isMuted)
+        {
+            previousGain = v;
+        }
     }
     else if (slider == &speedslider)
     {
@@ -591,10 +625,11 @@ void PlayerGUI::timerCallback()
         {
             propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
             propertiesFile->setValue("lastPosition", playerAudio.getPosition());
-            propertiesFile->setValue("volume", volumeSlider.getValue());
+            // ✅ FIXED: Save the actual volume (previousGain) when muted
+            propertiesFile->setValue("volume", isMuted ? previousGain : volumeSlider.getValue());
             propertiesFile->setValue("speed", speedslider.getValue());
-			propertiesFile->setValue("totalTime", totalTimeLabel.getTextValue());
-			propertiesFile->setValue("mutedState", isMuted);
+            propertiesFile->setValue("totalTime", totalTimeLabel.getText());
+            propertiesFile->setValue("mutedState", isMuted);
             propertiesFile->saveIfNeeded();
         }
         counter = 0;
@@ -623,25 +658,25 @@ juce::String PlayerGUI::formatTime(double timeInSeconds)
 void PlayerGUI::updateMetadataDisplay()
 {
     const AudioMetadata& metadata = playerAudio.getMetadata();
-    
+
     // Display title (or filename if no metadata)
     if (metadata.hasMetadata && !metadata.title.isEmpty())
         metadataTitleLabel.setText(metadata.title, juce::dontSendNotification);
     else
         metadataTitleLabel.setText(metadata.filename, juce::dontSendNotification);
-    
+
     // Display artist
     if (metadata.hasMetadata && !metadata.artist.isEmpty())
         metadataArtistLabel.setText(metadata.artist, juce::dontSendNotification);
     else
         metadataArtistLabel.setText("Unknown Artist", juce::dontSendNotification);
-    
+
     // Display album
     if (metadata.hasMetadata && !metadata.album.isEmpty())
         metadataAlbumLabel.setText("Album: " + metadata.album, juce::dontSendNotification);
     else
         metadataAlbumLabel.setText("", juce::dontSendNotification);
-    
+
     // Display additional info (bitrate, sample rate, channels, genre)
     juce::String info;
     if (metadata.bitrate > 0)
@@ -661,7 +696,7 @@ void PlayerGUI::updateMetadataDisplay()
         if (!info.isEmpty()) info << " • ";
         info << metadata.genre;
     }
-    
+
     metadataInfoLabel.setText(info, juce::dontSendNotification);
 }
 
