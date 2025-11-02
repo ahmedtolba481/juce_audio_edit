@@ -1013,7 +1013,7 @@ void PlayerGUI::updateABLoopDisplay()
         double pointA = playerAudio.getPointA();
         double pointB = playerAudio.getPointB();
         
-        juce::String info = "A: " + formatTime(pointA) + "  →  B: " + formatTime(pointB);
+        juce::String info = "A: " + formatTime(pointA) + "  :  B: " + formatTime(pointB);
         abLoopInfoLabel.setText(info, juce::dontSendNotification);
         
         if (playerAudio.isABLoopEnabled())

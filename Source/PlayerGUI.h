@@ -64,9 +64,9 @@ private:
     juce::Image forwardimage;
     juce::ImageButton backwardButton;
     juce::Image backwardimage;
-	juce::TextButton loadLast{ "Load Last Session" };
-	juce::TextButton clearPlaylistButton{ "Clear Playlist" };
-	juce::TextButton deleteTrackButton{ "Delete Track" };
+    juce::TextButton loadLast{ "Load Last Session" };
+    juce::TextButton clearPlaylistButton{ "Clear Playlist" };
+    juce::TextButton deleteTrackButton{ "Delete Track" };
     juce::TextButton unLoadTrack{ "Unload Track" };
     // A-B Loop controls
     juce::TextButton setPointAButton{ "Set A" };
