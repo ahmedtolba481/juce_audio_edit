@@ -1,4 +1,4 @@
-# Install script for directory: E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/3rdparty/utfcpp
+# Install script for directory: C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/3rdparty/utfcpp
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -35,6 +35,6 @@ endif()
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-debug/3rdparty/utfcpp/install_local_manifest.txt"
+  file(WRITE "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-debug/3rdparty/utfcpp/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

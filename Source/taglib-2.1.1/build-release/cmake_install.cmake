@@ -1,4 +1,4 @@
-# Install script for directory: E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1
+# Install script for directory: C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -33,25 +33,25 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE PROGRAM RENAME "taglib-config.cmd" FILES "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release/taglib-config.cmd")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE PROGRAM RENAME "taglib-config.cmd" FILES "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release/taglib-config.cmd")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE RENAME "taglib.pc" FILES "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release/taglib.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE RENAME "taglib.pc" FILES "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release/taglib.pc")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release/3rdparty/utfcpp/cmake_install.cmake")
-  include("E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release/taglib/cmake_install.cmake")
-  include("E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release/bindings/cmake_install.cmake")
+  include("C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release/3rdparty/utfcpp/cmake_install.cmake")
+  include("C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release/taglib/cmake_install.cmake")
+  include("C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release/bindings/cmake_install.cmake")
 
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release/install_local_manifest.txt"
+  file(WRITE "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
 if(CMAKE_INSTALL_COMPONENT)
@@ -67,6 +67,6 @@ else()
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

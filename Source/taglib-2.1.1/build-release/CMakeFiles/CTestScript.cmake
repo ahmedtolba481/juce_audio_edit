@@ -2,11 +2,11 @@
 # If you choose not to use CMake, this file may be hand configured, by
 # filling in the required variables.
 
-cmake_minimum_required(VERSION 4.2.0-rc2)
+cmake_minimum_required(VERSION 4.1.0-rc4)
 
 # CTest Start Step
-set(CTEST_SOURCE_DIRECTORY "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1")
-set(CTEST_BINARY_DIRECTORY "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-release")
+set(CTEST_SOURCE_DIRECTORY "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1")
+set(CTEST_BINARY_DIRECTORY "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-release")
 
 # CTest Update Step
 set(CTEST_UPDATE_COMMAND "")
@@ -61,7 +61,7 @@ set(CTEST_MEMORYCHECK_SANITIZER_OPTIONS "")
 set(CTEST_MEMORYCHECK_SUPPRESSIONS_FILE "")
 
 # CTest Submit Step
-set(CTEST_SITE "DESKTOP-938N9ER")
+set(CTEST_SITE "Eyad")
 set(CTEST_BUILD_NAME "Win32-MSBuild")
 set(CTEST_SUBMIT_URL "http://")
 set(CTEST_SUBMIT_INACTIVITY_TIMEOUT "")

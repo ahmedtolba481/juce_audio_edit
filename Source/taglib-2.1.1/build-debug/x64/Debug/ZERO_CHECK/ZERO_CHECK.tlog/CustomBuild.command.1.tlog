@@ -1,6 +1,6 @@
-^E:\TAREK\COLLAGE\SECOND YEAR\FIRST SEMESTER\OOP\ASSIGNMENTS\ASSIGNMENT 2 AHMEDVERISON\JUCE_AUDIO_EDIT\SOURCE\TAGLIB-2.1.1\BUILD-DEBUG\CMAKEFILES\6BCA721B0023CB819BECB828C03F5390\GENERATE.STAMP.RULE
+^C:\USERS\EYADD\DOCUMENTS\CPP\CS 213\ASSIGNMENT-2\AHMED\JUCE_AUDIO_EDIT\SOURCE\TAGLIB-2.1.1\BUILD-DEBUG\CMAKEFILES\AAFC56FAD6CE823D381A5B7198E1A3DA\GENERATE.STAMP.RULE
 setlocal
-"C:\Program Files\CMake\bin\cmake.exe" "-SE:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1" "-BE:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-debug" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "E:/Tarek/Collage/Second Year/First Semester/OOP/Assignments/Assignment 2 AhmedVerison/juce_audio_edit/Source/taglib-2.1.1/build-debug/taglib.sln"
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1" "-BC:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-debug" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/eyadd/Documents/CPP/CS 213/Assignment-2/Ahmed/juce_audio_edit/Source/taglib-2.1.1/build-debug/taglib.sln"
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
