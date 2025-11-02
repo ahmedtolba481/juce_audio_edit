@@ -5,13 +5,13 @@ PlaylistRowComponent::PlaylistRowComponent(PlayerGUI *parent) : owner(parent)
 {
     filenameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     filenameLabel.setFont(juce::FontOptions(13.0f, juce::Font::plain));
-    filenameLabel.setInterceptsMouseClicks(false, false); // Don't intercept mouse clicks
+    filenameLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(filenameLabel);
 
     durationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     durationLabel.setFont(juce::FontOptions(13.0f, juce::Font::plain));
     durationLabel.setJustificationType(juce::Justification::centred);
-    durationLabel.setInterceptsMouseClicks(false, false); // Don't intercept mouse clicks
+    durationLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(durationLabel);
 
     deleteButton.setButtonText("Delete");
@@ -32,7 +32,6 @@ void PlaylistRowComponent::updateRow(int rowIndex, const juce::String &filename,
     filenameLabel.setText(filename, juce::dontSendNotification);
     durationLabel.setText(duration, juce::dontSendNotification);
 
-    // Update background color based on selection
     if (isSelected)
         setBackgroundColour(juce::Colour(0xFF3498DB));
     else
@@ -68,35 +67,29 @@ void PlaylistRowComponent::setBackgroundColour(juce::Colour colour)
 
 void PlaylistRowComponent::mouseDown(const juce::MouseEvent &event)
 {
-    // Check if clicking on delete button
     auto localPos = event.getEventRelativeTo(this).position.toInt();
     auto bounds = getLocalBounds();
     juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
 
-    // If clicking on delete button, don't handle it here - let buttonClicked handle it
     if (deleteButtonBounds.contains(localPos))
     {
-        return; // Let the button handle the click
+        return;
     }
 
-    // For single click, just select the row (don't play) - let ListBox handle selection
-    // Playing will happen on double click via mouseDoubleClick
     Component::mouseDown(event);
 }
 
 void PlaylistRowComponent::mouseDoubleClick(const juce::MouseEvent &event)
 {
-    // Check if double-clicking on delete button - ignore if so
     auto localPos = event.getEventRelativeTo(this).position.toInt();
     auto bounds = getLocalBounds();
     juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
 
     if (deleteButtonBounds.contains(localPos))
     {
-        return; // Ignore double click on delete button
+        return;
     }
 
-    // Double click on row - play this track
     if (owner != nullptr && currentRow >= 0 && currentRow < owner->getPlaylistSize())
     {
         owner->selectPlaylistRow(currentRow);
@@ -105,25 +98,95 @@ void PlaylistRowComponent::mouseDoubleClick(const juce::MouseEvent &event)
 
 void PlaylistRowComponent::mouseDrag(const juce::MouseEvent &event)
 {
-    // Check if clicking on delete button - don't drag if over delete button
     auto localPos = event.getEventRelativeTo(this).position.toInt();
     auto bounds = getLocalBounds();
     juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
 
     if (deleteButtonBounds.contains(localPos))
     {
-        return; // Don't drag when over delete button
+        return;
     }
 
-    // Start drag operation if mouse has been dragged enough
     if (currentRow >= 0 && event.mouseWasDraggedSinceMouseDown())
     {
-        // Find the drag container
         if (auto *dragContainer = juce::DragAndDropContainer::findParentDragContainerFor(this))
         {
-            // Start dragging with the row index
             dragContainer->startDragging(juce::var(currentRow), this);
         }
+    }
+}
+
+// MarkerRowComponent implementation
+MarkerRowComponent::MarkerRowComponent(PlayerGUI* parent) : owner(parent)
+{
+    markerLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    markerLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    markerLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(markerLabel);
+    
+    timeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF3498DB));
+    timeLabel.setFont(juce::FontOptions(12.0f, juce::Font::plain));
+    timeLabel.setJustificationType(juce::Justification::centredRight);
+    timeLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(timeLabel);
+    
+    deleteButton.setButtonText("X");
+    deleteButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
+    deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFC0392B));
+    deleteButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    deleteButton.addListener(this);
+    addAndMakeVisible(deleteButton);
+}
+
+void MarkerRowComponent::updateRow(int rowIndex, const juce::String& label, const juce::String& time)
+{
+    currentRow = rowIndex;
+    markerLabel.setText(label, juce::dontSendNotification);
+    timeLabel.setText(time, juce::dontSendNotification);
+    backgroundColour = rowIndex % 2 == 0 ? juce::Colour(0xFF34495E) : juce::Colour(0xFF2C3E50);
+}
+
+void MarkerRowComponent::resized()
+{
+    auto bounds = getLocalBounds();
+    deleteButton.setBounds(bounds.getWidth() - 30, 2, 25, bounds.getHeight() - 4);
+    timeLabel.setBounds(bounds.getWidth() - 100, 0, 65, bounds.getHeight());
+    markerLabel.setBounds(10, 0, bounds.getWidth() - 110, bounds.getHeight());
+}
+
+void MarkerRowComponent::paint(juce::Graphics& g)
+{
+    g.fillAll(backgroundColour);
+    
+    if (isMouseOver())
+    {
+        g.setColour(juce::Colours::white.withAlpha(0.1f));
+        g.fillAll();
+    }
+}
+
+void MarkerRowComponent::buttonClicked(juce::Button* button)
+{
+    if (button == &deleteButton && owner != nullptr)
+    {
+        owner->deleteMarker(currentRow);
+    }
+}
+
+void MarkerRowComponent::mouseDown(const juce::MouseEvent& event)
+{
+    auto localPos = event.getEventRelativeTo(this).position.toInt();
+    auto bounds = getLocalBounds();
+    juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 30, 2, 25, bounds.getHeight() - 4);
+    
+    if (deleteButtonBounds.contains(localPos))
+    {
+        return;
+    }
+    
+    if (owner != nullptr && currentRow >= 0)
+    {
+        owner->jumpToMarker(currentRow);
     }
 }
 
@@ -146,7 +209,6 @@ void PlayerGUI::paint(juce::Graphics &g)
 {
     g.fillAll(juce::Colours::lightgrey);
 
-    // Draw a decorative header background for metadata section
     juce::Rectangle<int> headerArea(0, 0, getWidth(), 110);
     juce::ColourGradient gradient(
         juce::Colour(0xFF2C3E50), 0, 0,
@@ -154,12 +216,11 @@ void PlayerGUI::paint(juce::Graphics &g)
     g.setGradientFill(gradient);
     g.fillRect(headerArea);
 
-    // Draw a subtle separator line
     g.setColour(juce::Colour(0xFF1A252F));
     g.drawLine(0, 110, (float)getWidth(), 110, 2.0f);
 
-    // Draw A-B loop markers on the position slider
     drawABLoopMarkers(g);
+    drawTrackMarkers(g);
 }
 
 void PlayerGUI::drawABLoopMarkers(juce::Graphics &g)
@@ -170,9 +231,7 @@ void PlayerGUI::drawABLoopMarkers(juce::Graphics &g)
     auto sliderBounds = positionSlider.getBounds();
     double totalLength = playerAudio.getLengthInSeconds();
 
-    // Get the actual track bounds (accounting for thumb width and padding)
-    // JUCE sliders have internal padding, so we need to calculate the actual usable range
-    const int thumbWidth = 20; // Approximate thumb width
+    const int thumbWidth = 20;
     const int sliderPadding = thumbWidth / 2;
 
     int trackX = sliderBounds.getX() + sliderPadding;
@@ -180,83 +239,110 @@ void PlayerGUI::drawABLoopMarkers(juce::Graphics &g)
     int trackY = sliderBounds.getY();
     int trackHeight = sliderBounds.getHeight();
 
-    // Draw A-B loop region (shaded area between A and B)
     if (playerAudio.hasValidABLoop())
     {
         double pointA = playerAudio.getPointA();
         double pointB = playerAudio.getPointB();
 
-        // Calculate normalized positions
         double normA = pointA / totalLength;
         double normB = pointB / totalLength;
 
-        // Calculate pixel positions using the corrected track bounds
         int xA = trackX + static_cast<int>(normA * trackWidth);
         int xB = trackX + static_cast<int>(normB * trackWidth);
 
-        // Draw shaded region between A and B
         juce::Rectangle<int> loopRegion(xA, trackY - 10,
                                         xB - xA, trackHeight + 20);
-        g.setColour(juce::Colour(0x3000FF00)); // Semi-transparent green
+        g.setColour(juce::Colour(0x3000FF00));
         g.fillRect(loopRegion);
 
-        // Draw border around loop region
         g.setColour(juce::Colour(0x8000FF00));
         g.drawRect(loopRegion, 2);
     }
 
-    // Draw Point A marker
     if (playerAudio.isPositionSetA())
     {
         double pointA = playerAudio.getPointA();
         double normA = pointA / totalLength;
         int xA = trackX + static_cast<int>(normA * trackWidth);
 
-        // Draw A marker - triangle pointing down
         juce::Path markerA;
         markerA.addTriangle(
             static_cast<float>(xA), static_cast<float>(trackY - 15),
             static_cast<float>(xA - 8), static_cast<float>(trackY - 5),
             static_cast<float>(xA + 8), static_cast<float>(trackY - 5));
-        g.setColour(juce::Colour(0xFF3498DB)); // Blue
+        g.setColour(juce::Colour(0xFF3498DB));
         g.fillPath(markerA);
 
-        // Draw vertical line from marker
         g.setColour(juce::Colour(0xFF3498DB));
         g.drawLine(static_cast<float>(xA), static_cast<float>(trackY - 5),
                    static_cast<float>(xA), static_cast<float>(trackY + trackHeight + 5), 2.0f);
 
-        // Draw "A" label
         g.setColour(juce::Colours::white);
         g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
         g.drawText("A", xA - 10, trackY - 25, 20, 15, juce::Justification::centred);
     }
 
-    // Draw Point B marker
     if (playerAudio.isPositionSetB())
     {
         double pointB = playerAudio.getPointB();
         double normB = pointB / totalLength;
         int xB = trackX + static_cast<int>(normB * trackWidth);
 
-        // Draw B marker - triangle pointing down
         juce::Path markerB;
         markerB.addTriangle(
             static_cast<float>(xB), static_cast<float>(trackY - 15),
             static_cast<float>(xB - 8), static_cast<float>(trackY - 5),
             static_cast<float>(xB + 8), static_cast<float>(trackY - 5));
-        g.setColour(juce::Colour(0xFFE74C3C)); // Red
+        g.setColour(juce::Colour(0xFFE74C3C));
         g.fillPath(markerB);
 
-        // Draw vertical line from marker
         g.setColour(juce::Colour(0xFFE74C3C));
         g.drawLine(static_cast<float>(xB), static_cast<float>(trackY - 5),
                    static_cast<float>(xB), static_cast<float>(trackY + trackHeight + 5), 2.0f);
 
-        // Draw "B" label
         g.setColour(juce::Colours::white);
         g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
         g.drawText("B", xB - 10, trackY - 25, 20, 15, juce::Justification::centred);
+    }
+}
+
+void PlayerGUI::drawTrackMarkers(juce::Graphics& g)
+{
+    if (playerAudio.getLengthInSeconds() <= 0.0)
+        return;
+
+    auto sliderBounds = positionSlider.getBounds();
+    double totalLength = playerAudio.getLengthInSeconds();
+    juce::String currentFileId = getCurrentFileId();
+
+    const int thumbWidth = 20;
+    const int sliderPadding = thumbWidth / 2;
+
+    int trackX = sliderBounds.getX() + sliderPadding;
+    int trackWidth = sliderBounds.getWidth() - thumbWidth;
+    int trackY = sliderBounds.getY();
+    int trackHeight = sliderBounds.getHeight();
+
+    for (const auto& marker : markers)
+    {
+        if (marker.fileId != currentFileId)
+            continue;
+
+        double normPos = marker.timestamp / totalLength;
+        int xPos = trackX + static_cast<int>(normPos * trackWidth);
+
+        juce::Path markerPath;
+        markerPath.addTriangle(
+            static_cast<float>(xPos), static_cast<float>(trackY + trackHeight + 5),
+            static_cast<float>(xPos - 6), static_cast<float>(trackY + trackHeight + 15),
+            static_cast<float>(xPos + 6), static_cast<float>(trackY + trackHeight + 15));
+
+        g.setColour(juce::Colour(0xFF9B59B6));
+        g.fillPath(markerPath);
+
+        g.setColour(juce::Colour(0xFF9B59B6).withAlpha(0.6f));
+        g.drawLine(static_cast<float>(xPos), static_cast<float>(trackY),
+                   static_cast<float>(xPos), static_cast<float>(trackY + trackHeight), 2.0f);
     }
 }
 
@@ -275,7 +361,6 @@ PlayerGUI::PlayerGUI()
 
     propertiesFile = std::make_unique<juce::PropertiesFile>(options);
 
-    // Playlist Box with improved styling
     playlistBox.setRowHeight(28);
     playlistBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF2C3E50));
     playlistBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF34495E));
@@ -287,13 +372,11 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(addFilesButton);
     addFilesButton.addListener(this);
 
-    // Last Session button with improved styling
     loadLast.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF9B59B6));
     loadLast.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     addAndMakeVisible(loadLast);
     loadLast.addListener(this);
 
-    // load button
     loadimage = juce::ImageFileFormat::loadFrom(BinaryData::upload_png, BinaryData::upload_pngSize);
     loadButton.setImages(false, true, true,
                          loadimage, 1.0f, juce::Colours::transparentBlack,
@@ -302,7 +385,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(loadButton);
     loadButton.addListener(this);
 
-    // play button
     playimage = juce::ImageFileFormat::loadFrom(BinaryData::playbuttton_png, BinaryData::playbuttton_pngSize);
     pauseimage = juce::ImageFileFormat::loadFrom(BinaryData::pause_png, BinaryData::pause_pngSize);
     PlayButton.setImages(false, true, true,
@@ -312,7 +394,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(PlayButton);
     PlayButton.addListener(this);
 
-    // restart button
     restartimage = juce::ImageFileFormat::loadFrom(BinaryData::rotate_png, BinaryData::rotate_pngSize);
     restartButton.setImages(false, true, true,
                             restartimage, 1.0f, juce::Colours::transparentBlack,
@@ -321,7 +402,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(restartButton);
     restartButton.addListener(this);
 
-    // Begin button
     beginimage = juce::ImageFileFormat::loadFrom(BinaryData::play__Copy_png, BinaryData::play__Copy_pngSize);
     BeginButton.setImages(false, true, true,
                           beginimage, 1.0f, juce::Colours::transparentBlack,
@@ -330,7 +410,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(BeginButton);
     BeginButton.addListener(this);
 
-    // End button
     endimage = juce::ImageFileFormat::loadFrom(BinaryData::play_png, BinaryData::play_pngSize);
     EndButton.setImages(false, true, true,
                         endimage, 1.0f, juce::Colours::transparentBlack,
@@ -339,7 +418,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(EndButton);
     EndButton.addListener(this);
 
-    // Mute button
     mutedImage = juce::ImageFileFormat::loadFrom(BinaryData::volumemute_png, BinaryData::volumemute_pngSize);
     unmutedImage = juce::ImageFileFormat::loadFrom(BinaryData::speakerfilledaudiotool_png, BinaryData::speakerfilledaudiotool_pngSize);
     MuteButton.setImages(false, true, true,
@@ -349,7 +427,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(MuteButton);
     MuteButton.addListener(this);
 
-    // loop button
     loopimage = juce::ImageFileFormat::loadFrom(BinaryData::loop_png, BinaryData::loop_pngSize);
     unloopimage = juce::ImageFileFormat::loadFrom(BinaryData::stop_png, BinaryData::stop_pngSize);
     LoopButton.setImages(false, true, true,
@@ -359,7 +436,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(LoopButton);
     LoopButton.addListener(this);
 
-    // forward button
     forwardimage = juce::ImageFileFormat::loadFrom(BinaryData::forward_png, BinaryData::forward_pngSize);
     forwardButton.setImages(false, true, true,
                             forwardimage, 1.0f, juce::Colours::transparentBlack,
@@ -368,7 +444,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(forwardButton);
     forwardButton.addListener(this);
 
-    // backward button
     backwardimage = juce::ImageFileFormat::loadFrom(BinaryData::backward_png, BinaryData::backward_pngSize);
     backwardButton.setImages(false, true, true,
                              backwardimage, 1.0f, juce::Colours::transparentBlack,
@@ -377,7 +452,6 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(backwardButton);
     backwardButton.addListener(this);
 
-    // Volume slider with improved styling
     volumeSlider.setRange(0.0, 10.0, 0.1);
     volumeSlider.setValue(1.00);
     volumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -389,14 +463,12 @@ PlayerGUI::PlayerGUI()
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
-    // Volume label with enhanced styling
     volumeLabel.setText("Volume: 1.00", juce::dontSendNotification);
     volumeLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
     volumeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
     volumeLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(volumeLabel);
 
-    // Speed slider with improved styling
     speedslider.setRange(0.25, 2.0, 0.25);
     speedslider.setValue(1.0);
     speedslider.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -408,14 +480,12 @@ PlayerGUI::PlayerGUI()
     speedslider.addListener(this);
     addAndMakeVisible(speedslider);
 
-    // Speed label with enhanced styling
     speedLabel.setText("Speed: 1.00x", juce::dontSendNotification);
     speedLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
     speedLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
     speedLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(speedLabel);
 
-    // Position slider with improved styling
     positionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     positionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     positionSlider.setRange(0.0, 1.0, 0.001);
@@ -425,7 +495,6 @@ PlayerGUI::PlayerGUI()
     positionSlider.addListener(this);
     addAndMakeVisible(positionSlider);
 
-    // Time labels with improved styling
     currentTimeLabel.setText("00:00", juce::dontSendNotification);
     currentTimeLabel.setJustificationType(juce::Justification::centredLeft);
     currentTimeLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
@@ -438,7 +507,6 @@ PlayerGUI::PlayerGUI()
     totalTimeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
     addAndMakeVisible(totalTimeLabel);
 
-    // Metadata display labels with improved styling
     metadataTitleLabel.setText("No file loaded", juce::dontSendNotification);
     metadataTitleLabel.setFont(juce::FontOptions(22.0f, juce::Font::bold));
     metadataTitleLabel.setJustificationType(juce::Justification::centred);
@@ -467,10 +535,8 @@ PlayerGUI::PlayerGUI()
     metadataInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataInfoLabel);
 
-    // Start timer to update position slider and markers
-    startTimer(50); // Update every 50ms for smooth marker display
+    startTimer(50);
 
-    // ====== RESTORE LAST SESSION ======
     auto lastFilePath = propertiesFile->getValue("lastFilePath");
     lastPosition = propertiesFile->getDoubleValue("lastPosition", 0.0);
     lastVolume = propertiesFile->getDoubleValue("volume", 1.0);
@@ -479,7 +545,6 @@ PlayerGUI::PlayerGUI()
     mutedState = propertiesFile->getBoolValue("mutedState", false);
     lastFile = juce::File(lastFilePath);
 
-    // A-B Loop controls with improved styling
     setPointAButton.addListener(this);
     setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
     setPointAButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
@@ -511,28 +576,49 @@ PlayerGUI::PlayerGUI()
     abLoopInfoLabel.setColour(juce::Label::outlineColourId, juce::Colour(0xFF2C3E50));
     addAndMakeVisible(abLoopInfoLabel);
 
-    // Clear Playlist button with improved styling
     clearPlaylistButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
     clearPlaylistButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     addAndMakeVisible(clearPlaylistButton);
     clearPlaylistButton.addListener(this);
-    // Unload Track button with improved styling
+
     unLoadTrack.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFe67e22));
     unLoadTrack.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     addAndMakeVisible(unLoadTrack);
     unLoadTrack.addListener(this);
+
+    addMarkerButton.addListener(this);
+    addMarkerButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF9B59B6));
+    addMarkerButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addAndMakeVisible(addMarkerButton);
+
+    clearMarkersButton.addListener(this);
+    clearMarkersButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF95A5A6));
+    clearMarkersButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addAndMakeVisible(clearMarkersButton);
+
+    markersLabel.setText("Track Markers", juce::dontSendNotification);
+    markersLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    markersLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    markersLabel.setJustificationType(juce::Justification::centredLeft);
+    addAndMakeVisible(markersLabel);
+
+    markersListBox.setRowHeight(26);
+    markersListBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF34495E));
+    markersListBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF2C3E50));
+    markersListBox.setModel(this);
+    addAndMakeVisible(markersListBox);
+
+    loadMarkers();
 }
 
 void PlayerGUI::resized()
 {
-    // Metadata section at the top (0-110)
     int metadataY = 10;
     metadataTitleLabel.setBounds(20, metadataY, getWidth() - 40, 28);
     metadataArtistLabel.setBounds(20, metadataY + 34, getWidth() - 40, 24);
     metadataAlbumLabel.setBounds(20, metadataY + 60, getWidth() - 40, 22);
     metadataInfoLabel.setBounds(20, metadataY + 84, getWidth() - 40, 20);
 
-    // Control buttons below metadata (starting at 125)
     int y = 125;
     int buttonWidth = 70;
     int buttonHeight = 35;
@@ -556,21 +642,17 @@ void PlayerGUI::resized()
     clearPlaylistButton.setBounds(startX + (buttonWidth + spacing) * 11, y, buttonWidth, buttonHeight);
     unLoadTrack.setBounds(startX + (buttonWidth + spacing) * 12, y, buttonWidth, buttonHeight);
 
-    // Position slider layout with extra space for markers (below buttons)
-    int positionY = 185; // Increased from 175 to make room for markers
+    int positionY = 185;
     currentTimeLabel.setBounds(20, positionY, 60, 20);
     totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
     positionSlider.setBounds(85, positionY, getWidth() - 170, 20);
 
-    // Volume controls
     volumeLabel.setBounds(20, 220, 80, 25);
     volumeSlider.setBounds(110, 220, getWidth() - 130, 25);
 
-    // Speed controls
     speedLabel.setBounds(20, 255, 80, 25);
     speedslider.setBounds(110, 255, getWidth() - 130, 25);
 
-    // A-B Loop buttons
     int abLoopY = 290;
     int abLoopButtonWidth = 100;
     int abLoopButtonHeight = 32;
@@ -586,8 +668,17 @@ void PlayerGUI::resized()
 
     abLoopInfoLabel.setBounds(20, abLoopY + abLoopButtonHeight + 8, getWidth() - 40, 26);
 
-    // Playlist box
-    playlistBox.setBounds(20, abLoopY + abLoopButtonHeight + 42, getWidth() - 40, getHeight() - (abLoopY + abLoopButtonHeight + 62));
+    int markerY = abLoopY + abLoopButtonHeight + 42;
+    markersLabel.setBounds(20, markerY, 150, 25);
+    addMarkerButton.setBounds(180, markerY, 100, 25);
+    clearMarkersButton.setBounds(290, markerY, 130, 25);
+
+    int remainingHeight = getHeight() - (markerY + 35);
+    int playlistHeight = static_cast<int>(remainingHeight * 0.6);
+    int markersHeight = remainingHeight - playlistHeight - 10;
+
+    playlistBox.setBounds(20, markerY + 35, getWidth() - 40, playlistHeight);
+    markersListBox.setBounds(20, markerY + 35 + playlistHeight + 10, getWidth() - 40, markersHeight);
 }
 
 PlayerGUI::~PlayerGUI()
@@ -603,7 +694,6 @@ PlayerGUI::~PlayerGUI()
         propertiesFile->setValue("mutedState", isMuted);
         propertiesFile->setValue("currentPlayingIndex", currentPlayingIndex);
 
-        // Save playlist
         juce::StringArray playlistPaths;
         for (auto &file : playlistFiles)
         {
@@ -611,10 +701,8 @@ PlayerGUI::~PlayerGUI()
         }
         propertiesFile->setValue("playlistFiles", playlistPaths.joinIntoString("\n"));
 
-        // Save track times
         propertiesFile->setValue("trackTimes", trackTimes.joinIntoString("\n"));
 
-        // Save A-B Loop settings
         if (playerAudio.isPositionSetA())
         {
             propertiesFile->setValue("abLoopPointA", playerAudio.getPointA());
@@ -634,6 +722,8 @@ PlayerGUI::~PlayerGUI()
         }
 
         propertiesFile->setValue("abLoopEnabled", playerAudio.isABLoopEnabled());
+
+        saveMarkers();
 
         propertiesFile->saveIfNeeded();
     }
@@ -655,40 +745,35 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                 auto file = fc.getResult();
                 if (file.existsAsFile())
                 {
-                    // Loading file directly (not from playlist), reset currentPlayingIndex
                     currentPlayingIndex = -1;
 
                     if (playerAudio.loadFile(file))
                     {
-                        // Update total time label
                         double totalLength = playerAudio.getLengthInSeconds();
                         totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
                         currentTimeLabel.setText("00:00", juce::dontSendNotification);
                         positionSlider.setValue(0.0, juce::dontSendNotification);
 
-                        // Update metadata display
                         updateMetadataDisplay();
+                        markersListBox.updateContent();
+                        markersListBox.repaint();
                     }
                     else
                     {
-                        // Handle load error
                         metadataTitleLabel.setText("Error loading file", juce::dontSendNotification);
                         metadataArtistLabel.setText("", juce::dontSendNotification);
                         metadataAlbumLabel.setText("", juce::dontSendNotification);
                         metadataInfoLabel.setText("", juce::dontSendNotification);
                     }
                 }
-                repaint(); // Repaint to show/hide markers
+                repaint();
             });
     }
-
-    if (button == &restartButton)
+    else if (button == &restartButton)
     {
-        // Ensure currentPlayingIndex is updated by checking the loaded file
         auto currentFile = playerAudio.getLastLoadedFile();
         if (currentFile.existsAsFile() && playlistFiles.size() > 0)
         {
-            // Update currentPlayingIndex if it's not set or if the file doesn't match
             bool found = false;
             if (currentPlayingIndex >= 0 && currentPlayingIndex < playlistFiles.size())
             {
@@ -713,14 +798,12 @@ void PlayerGUI::buttonClicked(juce::Button *button)
 
         double currentPos = playerAudio.getPosition();
 
-        // If position is less than or equal to 0.02 seconds and there's a previous track, go to previous track
         if (currentPos <= 0.02 && currentPlayingIndex > 0 && playlistFiles.size() > 1)
         {
             playPreviousTrack();
         }
         else
         {
-            // Otherwise, restart current track
             playerAudio.setPosition(0.0);
             PlayButton.setImages(false, true, true,
                                  pauseimage, 1.0f, juce::Colours::transparentBlack,
@@ -729,7 +812,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             playerAudio.start();
         }
     }
-    if (button == &addFilesButton)
+    else if (button == &addFilesButton)
     {
         fileChooser = std::make_unique<juce::FileChooser>(
             "Select Audio Files",
@@ -755,17 +838,13 @@ void PlayerGUI::buttonClicked(juce::Button *button)
 
                 playlistBox.updateContent();
                 playlistBox.repaint();
-            }
-
-        );
+            });
     }
-    if (button == &BeginButton)
+    else if (button == &BeginButton)
     {
-        // Ensure currentPlayingIndex is updated by checking the loaded file
         auto currentFile = playerAudio.getLastLoadedFile();
         if (currentFile.existsAsFile() && playlistFiles.size() > 0)
         {
-            // Update currentPlayingIndex if it's not set or if the file doesn't match
             bool found = false;
             if (currentPlayingIndex >= 0 && currentPlayingIndex < playlistFiles.size())
             {
@@ -790,14 +869,12 @@ void PlayerGUI::buttonClicked(juce::Button *button)
 
         double currentPos = playerAudio.getPosition();
 
-        // If position is less than or equal to 0.02 seconds and there's a previous track, go to previous track
         if (currentPos <= 0.02 && currentPlayingIndex > 0 && playlistFiles.size() > 1)
         {
             playPreviousTrack();
         }
         else
         {
-            // Otherwise, go to beginning of current track
             playerAudio.setPosition(0.0);
             playerAudio.stop();
 
@@ -807,8 +884,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                                  pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
     }
-
-    if (button == &EndButton)
+    else if (button == &EndButton)
     {
         if (isLooping)
         {
@@ -830,10 +906,8 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                                  pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
     }
-
-    if (button == &loadLast)
+    else if (button == &loadLast)
     {
-        // Load saved playlist first
         auto savedPlaylist = propertiesFile->getValue("playlistFiles");
         if (!savedPlaylist.isEmpty())
         {
@@ -852,7 +926,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     {
                         playlistFiles.add(file);
 
-                        // Calculate duration
                         juce::AudioFormatManager formatManager;
                         formatManager.registerBasicFormats();
                         std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
@@ -868,7 +941,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             playlistBox.repaint();
         }
 
-        // Load saved track times if available (and if we loaded playlist)
         auto savedTrackTimes = propertiesFile->getValue("trackTimes");
         if (!savedTrackTimes.isEmpty() && playlistFiles.size() > 0 && trackTimes.size() < playlistFiles.size())
         {
@@ -881,7 +953,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     trackTimes.add(time);
             }
 
-            // If saved times count doesn't match playlist, recalculate missing ones
             while (trackTimes.size() < playlistFiles.size())
             {
                 int index = trackTimes.size();
@@ -896,7 +967,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             }
         }
 
-        // Load last played file and index
         auto savedIndex = propertiesFile->getIntValue("currentPlayingIndex", -1);
         auto lastPath = propertiesFile->getValue("lastFilePath");
 
@@ -906,16 +976,13 @@ void PlayerGUI::buttonClicked(juce::Button *button)
 
             if (lastFile.existsAsFile())
             {
-                // Try to find the file index in playlist
                 currentPlayingIndex = -1;
                 if (savedIndex >= 0 && savedIndex < playlistFiles.size() && playlistFiles[savedIndex] == lastFile)
                 {
-                    // Use saved index if it matches
                     currentPlayingIndex = savedIndex;
                 }
                 else
                 {
-                    // Search for the file in playlist
                     for (int i = 0; i < playlistFiles.size(); i++)
                     {
                         if (playlistFiles[i] == lastFile)
@@ -926,17 +993,15 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     }
                 }
 
-                // Select the row if found in playlist
                 if (currentPlayingIndex >= 0)
                 {
                     playlistBox.selectRow(currentPlayingIndex);
                 }
 
-                // Load the file
                 playerAudio.loadFile(lastFile);
 
                 juce::Timer::callAfterDelay(300, [this]()
-                                            {
+                {
                     playerAudio.setSpeed(static_cast<float>(lastSpeed));
                     playerAudio.setPosition(lastPosition);
 
@@ -947,30 +1012,25 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                         previousGain = (float)lastVolume;
                         playerAudio.setGain(0.0f);
                         volumeSlider.setValue(0.0, juce::dontSendNotification);
-                        // ✅ UPDATE: Update volume label
                         volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
                         MuteButton.setImages(false, true, true,
                             mutedImage, 1.0f, juce::Colours::transparentBlack,
                             mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                            unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f)
-                        );
+                            unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
                     }
                     else
                     {
                         playerAudio.setGain((float)lastVolume);
                         volumeSlider.setValue(lastVolume, juce::dontSendNotification);
                         previousGain = (float)lastVolume;
-                        // ✅ UPDATE: Update volume label
                         volumeLabel.setText("Volume: " + juce::String(lastVolume, 2), juce::dontSendNotification);
                         MuteButton.setImages(false, true, true,
                             unmutedImage, 1.0f, juce::Colours::transparentBlack,
                             unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                            mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f)
-                        );
+                            mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
                     }
 
                     speedslider.setValue(lastSpeed, juce::dontSendNotification);
-                    // ✅ UPDATE: Update speed label
                     speedLabel.setText("Speed: " + juce::String(lastSpeed, 2) + "x", juce::dontSendNotification);
                     
                     totalTimeLabel.setText(lastFullTime, juce::dontSendNotification);
@@ -978,7 +1038,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     if (auto totalLength = playerAudio.getLengthInSeconds(); totalLength > 0.0)
                         positionSlider.setValue(lastPosition / totalLength, juce::dontSendNotification);
 
-                    // Load A-B Loop settings
                     double savedPointA = propertiesFile->getDoubleValue("abLoopPointA", -1.0);
                     double savedPointB = propertiesFile->getDoubleValue("abLoopPointB", -1.0);
                     bool savedABLoopEnabled = propertiesFile->getBoolValue("abLoopEnabled", false);
@@ -997,7 +1056,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     playerAudio.setABLoopEnabled(savedABLoopEnabled);
                     enableABLoopButton.setToggleState(savedABLoopEnabled, juce::dontSendNotification);
                     
-                    // Update button colors based on saved state
                     if (playerAudio.isPositionSetA())
                     {
                         setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2980B9));
@@ -1017,13 +1075,16 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     }
                     
                     updateABLoopDisplay();
-                    repaint(); // Repaint to show A-B loop markers
+                    markersListBox.updateContent();
+                    markersListBox.repaint();
+                    repaint();
 
-                    updateMetadataDisplay(); });
+                    updateMetadataDisplay();
+                });
             }
         }
     }
-    if (button == &PlayButton)
+    else if (button == &PlayButton)
     {
         if (playerAudio.isPlaying())
         {
@@ -1044,14 +1105,12 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                                  playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
     }
-
-    if (button == &MuteButton)
+    else if (button == &MuteButton)
     {
         if (isMuted)
         {
             playerAudio.setGain(previousGain);
             volumeSlider.setValue(previousGain, juce::dontSendNotification);
-            // ✅ UPDATE: Update volume label when unmuting
             volumeLabel.setText("Volume: " + juce::String((double)previousGain, 2), juce::dontSendNotification);
             isMuted = false;
             MuteButton.setImages(false, true, true,
@@ -1064,7 +1123,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             previousGain = (float)volumeSlider.getValue();
             playerAudio.setGain(0.0f);
             volumeSlider.setValue(0.0, juce::dontSendNotification);
-            // ✅ UPDATE: Update volume label when muting
             volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
             isMuted = true;
             MuteButton.setImages(false, true, true,
@@ -1073,8 +1131,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                                  unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
     }
-
-    if (button == &LoopButton)
+    else if (button == &LoopButton)
     {
         if (isLooping)
         {
@@ -1095,8 +1152,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                                  unloopimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
     }
-
-    if (button == &forwardButton)
+    else if (button == &forwardButton)
     {
         double newPos = playerAudio.getPosition() + 10.0;
         double trackLength = playerAudio.getLengthInSeconds();
@@ -1113,9 +1169,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
 
         playerAudio.setPosition(newPos);
     }
-
-    // A-B Loop button actions
-    if (button == &setPointAButton)
+    else if (button == &setPointAButton)
     {
         if (playerAudio.isPositionSetA())
         {
@@ -1128,7 +1182,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2980B9));
         }
         updateABLoopDisplay();
-        repaint(); // Repaint to show/hide markers
+        repaint();
     }
     else if (button == &setPointBButton)
     {
@@ -1143,7 +1197,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFC0392B));
         }
         updateABLoopDisplay();
-        repaint(); // Repaint to show/hide markers
+        repaint();
     }
     else if (button == &clearABButton)
     {
@@ -1152,7 +1206,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
         setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
         updateABLoopDisplay();
-        repaint(); // Repaint to clear markers
+        repaint();
     }
     else if (button == &enableABLoopButton)
     {
@@ -1160,13 +1214,13 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         playerAudio.setABLoopEnabled(isABLoopEnabled);
         enableABLoopButton.setToggleState(isABLoopEnabled, juce::dontSendNotification);
         updateABLoopDisplay();
-        repaint(); // Repaint to update loop region
+        repaint();
     }
-    if (button == &clearPlaylistButton)
+    else if (button == &clearPlaylistButton)
     {
         playlistFiles.clear();
         trackTimes.clear();
-        currentPlayingIndex = -1; // Reset current playing index
+        currentPlayingIndex = -1;
         playlistBox.updateContent();
         playlistBox.repaint();
         playerAudio.setPosition(0.0);
@@ -1180,9 +1234,9 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         currentTimeLabel.setText("00:00", juce::dontSendNotification);
         totalTimeLabel.setText("00:00", juce::dontSendNotification);
     }
-    if (button == &unLoadTrack)
+    else if (button == &unLoadTrack)
     {
-        currentPlayingIndex = -1; // Reset current playing index
+        currentPlayingIndex = -1;
         playerAudio.setPosition(0.0);
         PlayButton.setImages(false, true, true,
                              playimage, 1.0f, juce::Colours::transparentBlack,
@@ -1194,6 +1248,22 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         currentTimeLabel.setText("00:00", juce::dontSendNotification);
         totalTimeLabel.setText("00:00", juce::dontSendNotification);
     }
+    else if (button == &addMarkerButton)
+    {
+        addMarker();
+    }
+    else if (button == &clearMarkersButton)
+    {
+        if (!markers.empty())
+        {
+            markers.clear();
+            markerCounter = 0;
+            markersListBox.updateContent();
+            markersListBox.repaint();
+            saveMarkers();
+            repaint();
+        }
+    }
 }
 
 void PlayerGUI::sliderValueChanged(juce::Slider *slider)
@@ -1202,8 +1272,6 @@ void PlayerGUI::sliderValueChanged(juce::Slider *slider)
     {
         float v = (float)slider->getValue();
         playerAudio.setGain(v);
-
-        // ✅ UPDATE: Add this line to update the volume label
         volumeLabel.setText("Volume: " + juce::String(v, 2), juce::dontSendNotification);
 
         if (!isMuted)
@@ -1215,8 +1283,6 @@ void PlayerGUI::sliderValueChanged(juce::Slider *slider)
     {
         float s = (float)speedslider.getValue();
         playerAudio.setSpeed(s);
-
-        // ✅ UPDATE: Add this line to update the speed label
         speedLabel.setText("Speed: " + juce::String(s, 2) + "x", juce::dontSendNotification);
     }
     else if (slider == &positionSlider)
@@ -1239,21 +1305,16 @@ void PlayerGUI::timerCallback()
         updatePositionSlider();
     }
 
-    // Check if current track has finished playing (for auto-play next)
-    // Only auto-play next if not looping and not using A-B loop
     if (playerAudio.isPlaying() && !isLooping && !playerAudio.isABLoopEnabled())
     {
         double currentPos = playerAudio.getPosition();
         double totalLength = playerAudio.getLengthInSeconds();
 
-        // Check if track has finished (within a small threshold to account for rounding)
         if (totalLength > 0.0 && currentPos >= totalLength - 0.1)
         {
-            // Track has finished, play next
             playNextTrack();
         }
     }
-    // Also check if stopped and at the end (in case it stopped before timer caught it)
     else if (!playerAudio.isPlaying() && currentPlayingIndex >= 0 && !isLooping && !playerAudio.isABLoopEnabled())
     {
         double currentPos = playerAudio.getPosition();
@@ -1265,11 +1326,10 @@ void PlayerGUI::timerCallback()
         }
     }
 
-    // Always repaint to keep markers updated
     repaint();
 
     static int counter = 0;
-    if (++counter >= 100) // Every 5 seconds (100 * 50ms)
+    if (++counter >= 100)
     {
         if (propertiesFile)
         {
@@ -1281,18 +1341,14 @@ void PlayerGUI::timerCallback()
             propertiesFile->setValue("mutedState", isMuted);
             propertiesFile->setValue("currentPlayingIndex", currentPlayingIndex);
 
-            // Save playlist
             juce::StringArray playlistPaths;
             for (auto &file : playlistFiles)
             {
                 playlistPaths.add(file.getFullPathName());
             }
             propertiesFile->setValue("playlistFiles", playlistPaths.joinIntoString("\n"));
-
-            // Save track times
             propertiesFile->setValue("trackTimes", trackTimes.joinIntoString("\n"));
 
-            // Save A-B Loop settings
             if (playerAudio.isPositionSetA())
             {
                 propertiesFile->setValue("abLoopPointA", playerAudio.getPointA());
@@ -1312,6 +1368,7 @@ void PlayerGUI::timerCallback()
             }
 
             propertiesFile->setValue("abLoopEnabled", playerAudio.isABLoopEnabled());
+            saveMarkers();
 
             propertiesFile->saveIfNeeded();
         }
@@ -1396,6 +1453,41 @@ void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics &g,
 
 juce::Component *PlayerGUI::refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component *existingComponentToUpdate)
 {
+    // Determine which ListBox is requesting this
+    auto* parent = existingComponentToUpdate != nullptr ? existingComponentToUpdate->getParentComponent() : nullptr;
+    
+    // Check if this is for the markers list
+    if (parent == &markersListBox || (!existingComponentToUpdate && rowNumber < static_cast<int>(markers.size())))
+    {
+        juce::String currentFileId = getCurrentFileId();
+        std::vector<int> currentFileMarkerIndices;
+        
+        // Get indices of markers for current file
+        for (int i = 0; i < static_cast<int>(markers.size()); i++)
+        {
+            if (markers[i].fileId == currentFileId)
+                currentFileMarkerIndices.push_back(i);
+        }
+        
+        if (rowNumber >= static_cast<int>(currentFileMarkerIndices.size()))
+            return nullptr;
+            
+        int actualMarkerIndex = currentFileMarkerIndices[rowNumber];
+        
+        MarkerRowComponent* markerRow = dynamic_cast<MarkerRowComponent*>(existingComponentToUpdate);
+        
+        if (markerRow == nullptr)
+        {
+            markerRow = new MarkerRowComponent(this);
+        }
+        
+        const auto& marker = markers[actualMarkerIndex];
+        markerRow->updateRow(actualMarkerIndex, marker.label, formatTime(marker.timestamp));
+        
+        return markerRow;
+    }
+    
+    // Handle playlist
     if (rowNumber >= playlistFiles.size())
         return nullptr;
 
@@ -1404,8 +1496,6 @@ juce::Component *PlayerGUI::refreshComponentForRow(int rowNumber, bool isRowSele
     if (rowComponent == nullptr)
     {
         rowComponent = new PlaylistRowComponent(this);
-        // Allow the component to receive mouse events (for double click and drag)
-        // and also allow clicks on children (like delete button)
         rowComponent->setInterceptsMouseClicks(true, true);
     }
 
@@ -1423,7 +1513,6 @@ int PlayerGUI::getPlaylistSize() const
 
 juce::var PlayerGUI::getDragSourceDescription(const juce::SparseSet<int> &selectedRows)
 {
-    // Return the first selected row index as a string for drag source identification
     if (selectedRows.size() > 0)
     {
         return juce::var(selectedRows[0]);
@@ -1433,131 +1522,95 @@ juce::var PlayerGUI::getDragSourceDescription(const juce::SparseSet<int> &select
 
 bool PlayerGUI::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    // Accept drag from PlaylistRowComponent
     return dragSourceDetails.description.isInt() || dragSourceDetails.description.toString().containsOnly("0123456789");
 }
 
 void PlayerGUI::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
-    // Get the source row index
     int sourceIndex = dragSourceDetails.description.toString().getIntValue();
 
     if (sourceIndex < 0 || sourceIndex >= playlistFiles.size())
         return;
 
-    // Find which row the drop occurred over by checking mouse position relative to ListBox
     auto mousePos = getMouseXYRelative();
     auto listBoxBounds = playlistBox.getBounds();
 
     if (!listBoxBounds.contains(mousePos))
         return;
 
-    // Calculate which row the mouse is over
     int rowHeight = playlistBox.getRowHeight();
     int relativeY = mousePos.y - listBoxBounds.getY();
     int targetRow = relativeY / rowHeight;
 
-    // Call rowsDropped with the calculated insert index
     rowsDropped(dragSourceDetails, targetRow);
 }
 
 void PlayerGUI::rowsDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails, int insertIndex)
 {
-    // Get the source row index from the drag description
     int sourceIndex = dragSourceDetails.description.toString().getIntValue();
 
-    // Validate indices
     if (sourceIndex < 0 || sourceIndex >= playlistFiles.size() || insertIndex < 0)
         return;
 
-    // Calculate the correct destination index
-    // insertIndex represents where to insert the item
     int destinationIndex = insertIndex;
 
-    // If inserting after the source position, we need to adjust because
-    // when we remove from sourceIndex first, everything after it shifts down by 1
     if (insertIndex > sourceIndex)
     {
         destinationIndex = insertIndex - 1;
     }
-    else if (insertIndex <= sourceIndex)
-    {
-        // If inserting at or before source, use insertIndex directly
-        destinationIndex = insertIndex;
-    }
 
-    // Don't do anything if dropping on itself
     if (destinationIndex == sourceIndex)
         return;
 
-    // Ensure destination index is valid (can be size() for inserting at end)
     if (destinationIndex < 0)
         destinationIndex = 0;
     if (destinationIndex > playlistFiles.size())
         destinationIndex = playlistFiles.size();
 
-    // Set flag to prevent auto-play during reordering
     isReorderingPlaylist = true;
 
-    // Store if the moved track is the currently playing one
     bool wasCurrentlyPlaying = (currentPlayingIndex == sourceIndex);
 
-    // Reorder the items
     reorderPlaylistItems(sourceIndex, destinationIndex);
 
-    // Update currentPlayingIndex if we moved the currently playing track
     if (wasCurrentlyPlaying)
     {
         currentPlayingIndex = destinationIndex;
     }
-    // If we moved a track before the current one, adjust the index
     else if (sourceIndex < currentPlayingIndex && destinationIndex >= currentPlayingIndex)
     {
-        // Moved a track from before current to after current, so current shifts up
         currentPlayingIndex--;
     }
     else if (sourceIndex > currentPlayingIndex && destinationIndex <= currentPlayingIndex)
     {
-        // Moved a track from after current to before current, so current shifts down
         currentPlayingIndex++;
     }
 
-    // Update the list box
     playlistBox.updateContent();
     playlistBox.repaint();
-
-    // Select the moved item at its new position visually (without playing it)
     playlistBox.selectRow(destinationIndex);
 
-    // Reset flag after a short delay to allow ListBox to update
     juce::Timer::callAfterDelay(50, [this]()
                                 { isReorderingPlaylist = false; });
 }
 
 void PlayerGUI::reorderPlaylistItems(int sourceIndex, int destinationIndex)
 {
-    // Validate indices
     if (sourceIndex < 0 || sourceIndex >= playlistFiles.size() ||
         destinationIndex < 0 || destinationIndex > playlistFiles.size())
         return;
 
-    // Don't do anything if source and destination are the same
     if (sourceIndex == destinationIndex)
         return;
 
-    // Move the file and track time
     juce::File movedFile = playlistFiles[sourceIndex];
     juce::String movedTime = trackTimes[sourceIndex];
 
-    // Remove from source first
     playlistFiles.remove(sourceIndex);
     trackTimes.remove(sourceIndex);
 
-    // destinationIndex is already adjusted in rowsDropped to account for the removal
-    // Just ensure it's within bounds
     int adjustedDestination = juce::jlimit(0, playlistFiles.size(), destinationIndex);
 
-    // Insert at destination
     playlistFiles.insert(adjustedDestination, movedFile);
     trackTimes.insert(adjustedDestination, movedTime);
 }
@@ -1573,7 +1626,6 @@ void PlayerGUI::selectPlaylistRow(int rowIndex)
 
 void PlayerGUI::selectedRowsChanged(int lastRowSelected)
 {
-    // Don't play track if we're in the middle of reordering (drag and drop)
     if (isReorderingPlaylist)
     {
         return;
@@ -1583,16 +1635,13 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
     {
         auto file = playlistFiles[lastRowSelected];
 
-        // Update current playing index
         currentPlayingIndex = lastRowSelected;
 
-        // Stop current playback if any
         if (playerAudio.isPlaying())
         {
             playerAudio.stop();
         }
 
-        // Load and start the new file
         if (playerAudio.loadFile(file))
         {
             playerAudio.start();
@@ -1606,6 +1655,8 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
             currentTimeLabel.setText("00:00", juce::dontSendNotification);
             positionSlider.setValue(0.0, juce::dontSendNotification);
             updateMetadataDisplay();
+            markersListBox.updateContent();
+            markersListBox.repaint();
         }
     }
 }
@@ -1616,7 +1667,7 @@ void PlayerGUI::updateABLoopDisplay()
     {
         double pointA = playerAudio.getPointA();
         double pointB = playerAudio.getPointB();
-        
+
         juce::String info = "A: " + formatTime(pointA) + "  :  B: " + formatTime(pointB);
         abLoopInfoLabel.setText(info, juce::dontSendNotification);
 
@@ -1649,21 +1700,17 @@ void PlayerGUI::unloadMetaData()
 
 void PlayerGUI::playNextTrack()
 {
-    // Only auto-play if we have a valid current index and playlist is not empty
     if (currentPlayingIndex < 0 || playlistFiles.size() == 0)
         return;
 
-    // Calculate next index
     int nextIndex = currentPlayingIndex + 1;
 
-    // If there's a next track, play it
     if (nextIndex < playlistFiles.size())
     {
         selectPlaylistRow(nextIndex);
     }
     else
     {
-        // Reached end of playlist, stop playback
         playerAudio.stop();
         PlayButton.setImages(false, true, true,
                              playimage, 1.0f, juce::Colours::transparentBlack,
@@ -1675,14 +1722,11 @@ void PlayerGUI::playNextTrack()
 
 void PlayerGUI::playPreviousTrack()
 {
-    // Only play previous if we have a valid current index and playlist is not empty
     if (currentPlayingIndex <= 0 || playlistFiles.size() == 0)
         return;
 
-    // Calculate previous index
     int previousIndex = currentPlayingIndex - 1;
 
-    // If there's a previous track, play it
     if (previousIndex >= 0)
     {
         selectPlaylistRow(previousIndex);
@@ -1693,55 +1737,44 @@ void PlayerGUI::deleteTrack(int index)
 {
     if (index >= 0 && index < playlistFiles.size())
     {
-        // Store the file being deleted to check if it's currently playing
         auto fileToDelete = playlistFiles[index];
         bool wasCurrentlyPlaying = (currentPlayingIndex == index);
 
-        // Remove the item
         playlistFiles.remove(index);
         trackTimes.remove(index);
         playlistBox.updateContent();
         playlistBox.repaint();
 
-        // If the deleted track was the currently playing one, play next track
         if (wasCurrentlyPlaying)
         {
-            // Adjust currentPlayingIndex if needed (if we deleted before current index)
             if (index < currentPlayingIndex)
             {
                 currentPlayingIndex--;
             }
 
-            // Stop current playback
             playerAudio.setPosition(0.0);
             playerAudio.stop();
             playerAudio.unloadFile();
 
-            // Try to play next track, or previous if no next, or stop if playlist is empty
             if (playlistFiles.size() > 0)
             {
-                // If there's a track at the same index (which is now the next one), play it
                 if (index < playlistFiles.size())
                 {
                     currentPlayingIndex = index;
                 }
-                // Otherwise, if there's a previous track, play it
                 else if (index > 0)
                 {
                     currentPlayingIndex = index - 1;
                 }
-                // Otherwise play the first one
                 else
                 {
                     currentPlayingIndex = 0;
                 }
 
-                // Play the track
                 selectPlaylistRow(currentPlayingIndex);
             }
             else
             {
-                // Playlist is empty, stop everything
                 currentPlayingIndex = -1;
                 PlayButton.setImages(false, true, true,
                                      playimage, 1.0f, juce::Colours::transparentBlack,
@@ -1755,8 +1788,153 @@ void PlayerGUI::deleteTrack(int index)
         }
         else if (index < currentPlayingIndex)
         {
-            // If we deleted a track before the current one, adjust the index
             currentPlayingIndex--;
         }
     }
+}
+
+void PlayerGUI::addMarker()
+{
+    double currentTime = playerAudio.getPosition();
+
+    if (playerAudio.getLengthInSeconds() <= 0.0)
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::AlertWindow::WarningIcon,
+            "No File Loaded",
+            "Please load an audio file before adding markers.",
+            "OK");
+        return;
+    }
+
+    markerCounter++;
+    juce::String markerLabel = "Marker " + juce::String(markerCounter) + " (" + formatTime(currentTime) + ")";
+    juce::String fileId = getCurrentFileId();
+
+    markers.emplace_back(currentTime, markerLabel, fileId);
+
+    std::sort(markers.begin(), markers.end(),
+              [](const TrackMarker& a, const TrackMarker& b) {
+                  return a.timestamp < b.timestamp;
+              });
+
+    markersListBox.updateContent();
+    markersListBox.repaint();
+
+    saveMarkers();
+    repaint();
+}
+
+void PlayerGUI::jumpToMarker(int markerIndex)
+{
+    if (markerIndex >= 0 && markerIndex < static_cast<int>(markers.size()))
+    {
+        const auto& marker = markers[markerIndex];
+
+        if (marker.fileId != getCurrentFileId())
+        {
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::AlertWindow::InfoIcon,
+                "Different Track",
+                "This marker belongs to a different audio file.",
+                "OK");
+            return;
+        }
+
+        playerAudio.setPosition(marker.timestamp);
+
+        if (!playerAudio.isPlaying())
+        {
+            playerAudio.start();
+            PlayButton.setImages(false, true, true,
+                                pauseimage, 1.0f, juce::Colours::transparentBlack,
+                                pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                                playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+        }
+
+        updatePositionSlider();
+        repaint();
+    }
+}
+
+void PlayerGUI::deleteMarker(int markerIndex)
+{
+    if (markerIndex >= 0 && markerIndex < static_cast<int>(markers.size()))
+    {
+        markers.erase(markers.begin() + markerIndex);
+        markersListBox.updateContent();
+        markersListBox.repaint();
+        saveMarkers();
+        repaint();
+    }
+}
+
+juce::String PlayerGUI::getCurrentFileId() const
+{
+    auto currentFile = playerAudio.getLastLoadedFile();
+    if (currentFile.existsAsFile())
+    {
+        return currentFile.getFullPathName();
+    }
+    return juce::String();
+}
+
+void PlayerGUI::loadMarkersForCurrentFile()
+{
+}
+
+void PlayerGUI::saveMarkers()
+{
+    if (!propertiesFile)
+        return;
+
+    juce::StringArray markerData;
+    for (const auto& marker : markers)
+    {
+        juce::String data = juce::String(marker.timestamp) + "|" +
+                           marker.label + "|" +
+                           marker.fileId;
+        markerData.add(data);
+    }
+
+    propertiesFile->setValue("trackMarkers", markerData.joinIntoString("\n"));
+    propertiesFile->setValue("markerCounter", markerCounter);
+    propertiesFile->saveIfNeeded();
+}
+
+void PlayerGUI::loadMarkers()
+{
+    if (!propertiesFile)
+        return;
+
+    markers.clear();
+    auto savedMarkers = propertiesFile->getValue("trackMarkers");
+    markerCounter = propertiesFile->getIntValue("markerCounter", 0);
+
+    if (!savedMarkers.isEmpty())
+    {
+        juce::StringArray markerLines;
+        markerLines.addTokens(savedMarkers, "\n", "");
+
+        for (const auto& line : markerLines)
+        {
+            if (line.isEmpty())
+                continue;
+
+            juce::StringArray parts;
+            parts.addTokens(line, "|", "");
+
+            if (parts.size() >= 3)
+            {
+                double timestamp = parts[0].getDoubleValue();
+                juce::String label = parts[1];
+                juce::String fileId = parts[2];
+
+                markers.emplace_back(timestamp, label, fileId);
+            }
+        }
+    }
+
+    markersListBox.updateContent();
+    markersListBox.repaint();
 }

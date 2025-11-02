@@ -29,6 +29,38 @@ private:
     juce::Colour backgroundColour = juce::Colour(0xFF2C3E50);
 };
 
+// Marker structure to store timestamp and label
+struct TrackMarker
+{
+    double timestamp;           // Position in seconds
+    juce::String label;         // Marker label
+    juce::String fileId;        // Associated file identifier to support multiple tracks
+    
+    TrackMarker(double time, const juce::String& markerLabel, const juce::String& file)
+        : timestamp(time), label(markerLabel), fileId(file) {}
+};
+
+// Custom component for marker list rows
+class MarkerRowComponent : public juce::Component,
+                          public juce::Button::Listener
+{
+public:
+    MarkerRowComponent(PlayerGUI* parent);
+    void updateRow(int rowIndex, const juce::String& markerLabel, const juce::String& time);
+    void resized() override;
+    void paint(juce::Graphics& g) override;
+    void buttonClicked(juce::Button* button) override;
+    void mouseDown(const juce::MouseEvent& event) override;
+    
+private:
+    PlayerGUI* owner;
+    int currentRow = -1;
+    juce::Label markerLabel;
+    juce::Label timeLabel;
+    juce::TextButton deleteButton;
+    juce::Colour backgroundColour = juce::Colour(0xFF34495E);
+};
+
 class PlayerGUI : public juce::Component,
                   public juce::Button::Listener,
                   public juce::Slider::Listener,
@@ -65,6 +97,13 @@ public:
     // Auto-play next track functionality
     void playNextTrack();
     void playPreviousTrack();
+    
+    // Marker functionality
+    void addMarker();
+    void jumpToMarker(int markerIndex);
+    void deleteMarker(int markerIndex);
+    int getMarkerCount() const { return markers.size(); }
+    const TrackMarker& getMarker(int index) const { return markers[index]; }
 
 private:
     PlayerAudio playerAudio;
@@ -83,6 +122,11 @@ private:
     juce::StringArray trackTimes;
     int currentPlayingIndex = -1;      // Track the currently playing track index in playlist
     bool isReorderingPlaylist = false; // Flag to prevent auto-play during drag and drop
+    
+    // Marker data
+    std::vector<TrackMarker> markers;
+    int markerCounter = 0;
+    
     // GUI elements
     juce::ListBox playlistBox;
     juce::TextButton addFilesButton{"Add Files"};
@@ -117,6 +161,12 @@ private:
     juce::TextButton clearABButton{"Clear A-B"};
     juce::TextButton enableABLoopButton{"A-B Loop: OFF"};
     juce::Label abLoopInfoLabel;
+    
+    // Marker controls
+    juce::TextButton addMarkerButton{"Add Marker"};
+    juce::TextButton clearMarkersButton{"Clear All Markers"};
+    juce::ListBox markersListBox;
+    juce::Label markersLabel;
 
     juce::Slider volumeSlider;
     juce::Slider speedslider;
@@ -142,8 +192,14 @@ private:
     juce::String formatTime(double timeInSeconds);
     void updatePositionSlider();
     void updateABLoopDisplay();
-    void drawABLoopMarkers(juce::Graphics &g); // New method for drawing markers
+    void drawABLoopMarkers(juce::Graphics &g);
+    void drawTrackMarkers(juce::Graphics &g);
     std::unique_ptr<juce::PropertiesFile> propertiesFile;
+    
+    juce::String getCurrentFileId() const;
+    void loadMarkersForCurrentFile();
+    void saveMarkers();
+    void loadMarkers();
 
     void updateMetadataDisplay();
 
