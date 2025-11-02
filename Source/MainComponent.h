@@ -1,15 +1,16 @@
-#pragma once						// MainComponent.h
+#pragma once // MainComponent.h
 #include <JuceHeader.h>
 #include "PlayerGUI.h"
 
-class MainComponent : public juce::AudioAppComponent
+class MainComponent : public juce::AudioAppComponent,
+                      public juce::DragAndDropContainer
 {
 public:
     MainComponent();
     ~MainComponent() override;
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo &bufferToFill) override;
     void releaseResources() override;
     void resized() override;
 
