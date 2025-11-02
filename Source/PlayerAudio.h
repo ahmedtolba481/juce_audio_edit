@@ -1,6 +1,5 @@
 #pragma once
 #include <JuceHeader.h>
-
 // TagLib includes
 #include "taglib/fileref.h"
 #include "taglib/tag.h"
@@ -71,6 +70,8 @@ public:
     
     /** Clears position B */
     void clearPositionB();
+    // Unload Files
+    void unloadFile();
 
 private:
     juce::AudioFormatManager formatManager;

@@ -1,5 +1,4 @@
 ﻿#include "PlayerAudio.h"
-
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
@@ -271,4 +270,13 @@ void PlayerAudio::clearPositionA()
 void PlayerAudio::clearPositionB()
 {
     pointB = -1.0;
+}
+// Unload Files
+
+void PlayerAudio::unloadFile()
+{
+    stop();
+    transportSource.setSource(nullptr);
+    readerSource.reset();
+    lastLoadedFile = juce::File();
 }

@@ -281,7 +281,7 @@ PlayerGUI::PlayerGUI()
     addAndMakeVisible(volumeLabel);
 
     // Speed slider with improved styling
-    speedslider.setRange(0.25, 4.0, 0.01);
+    speedslider.setRange(0.25, 2.0, 0.25);
     speedslider.setValue(1.0);
     speedslider.setSliderStyle(juce::Slider::LinearHorizontal);
     speedslider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
@@ -394,6 +394,17 @@ PlayerGUI::PlayerGUI()
     abLoopInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xFF34495E));
     abLoopInfoLabel.setColour(juce::Label::outlineColourId, juce::Colour(0xFF2C3E50));
     addAndMakeVisible(abLoopInfoLabel);
+
+	// Clear Playlist button with improved styling
+    clearPlaylistButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
+    clearPlaylistButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addAndMakeVisible(clearPlaylistButton);
+	clearPlaylistButton.addListener(this);
+	// Unload Track button with improved styling
+    unLoadTrack.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFe67e22));
+    unLoadTrack.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addAndMakeVisible(unLoadTrack);
+	unLoadTrack.addListener(this);
 }
 
 void PlayerGUI::resized()
@@ -411,7 +422,7 @@ void PlayerGUI::resized()
     int buttonHeight = 35;
     int spacing = 15;
 
-    int numButtons = 11;
+    int numButtons = 13;
     int totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
     int startX = (getWidth() - totalWidth) / 2;
 
@@ -426,6 +437,8 @@ void PlayerGUI::resized()
     forwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
 	loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
     addFilesButton.setBounds(startX + (buttonWidth + spacing) * 10, y, buttonWidth, buttonHeight);
+	clearPlaylistButton.setBounds(startX + (buttonWidth + spacing) * 11, y, buttonWidth, buttonHeight);
+    unLoadTrack.setBounds(startX + (buttonWidth + spacing) * 12, y, buttonWidth, buttonHeight);
 
     // Position slider layout with extra space for markers (below buttons)
     int positionY = 185; // Increased from 175 to make room for markers
@@ -542,12 +555,21 @@ void PlayerGUI::buttonClicked(juce::Button* button)
             [this](const juce::FileChooser& fc)
             {
                 auto files = fc.getResults();
-                for (auto& f : files)
+                double duration = 0.0;
+                for (auto& f : files){
                     playlistFiles.addIfNotAlreadyThere(f);
-
+                    juce::AudioFormatManager formatManager;
+                    formatManager.registerBasicFormats();
+                    std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(f));
+                    if (reader != nullptr)
+                        duration = reader->lengthInSamples / reader->sampleRate;
+                    trackTimes.addIfNotAlreadyThere(formatTime(duration));
+                }
+            
                 playlistBox.updateContent();
                 playlistBox.repaint();
             }
+
         );
     }
     if (button == &BeginButton)
@@ -792,6 +814,38 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         updateABLoopDisplay();
         repaint(); // Repaint to update loop region
     }
+    if (button == &clearPlaylistButton)
+    {
+        playlistFiles.clear();
+        trackTimes.clear();
+        playlistBox.updateContent();
+        playlistBox.repaint();
+		playerAudio.setPosition(0.0);
+		PlayButton.setImages(false, true, true,
+            playimage, 1.0f, juce::Colours::transparentBlack,
+            playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+            pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f)
+		);
+        playerAudio.unloadFile();
+        unloadMetaData();
+		positionSlider.setValue(0.0, juce::dontSendNotification);
+		currentTimeLabel.setText("00:00", juce::dontSendNotification);
+		totalTimeLabel.setText("00:00", juce::dontSendNotification);
+	}
+    if (button == &unLoadTrack)
+    {
+        playerAudio.setPosition(0.0);
+        PlayButton.setImages(false, true, true,
+            playimage, 1.0f, juce::Colours::transparentBlack,
+            playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+            pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f)
+        );
+        playerAudio.unloadFile();
+        unloadMetaData();
+        positionSlider.setValue(0.0, juce::dontSendNotification);
+        currentTimeLabel.setText("00:00", juce::dontSendNotification);
+        totalTimeLabel.setText("00:00", juce::dontSendNotification);
+	}
 }
 
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
@@ -926,8 +980,8 @@ void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics& g,
 {
     if (rowNumber < playlistFiles.size())
     {
-        auto filename = playlistFiles[rowNumber].getFileName();
-
+        auto filename = playlistFiles[rowNumber].getFileNameWithoutExtension();
+		auto fileDuration = trackTimes[rowNumber];
         if (rowIsSelected)
             g.fillAll(juce::Colour(0xFF3498DB));
         else
@@ -936,6 +990,7 @@ void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics& g,
         g.setColour(juce::Colours::white);
         g.setFont(juce::FontOptions(13.0f, juce::Font::plain));
         g.drawText(filename, 10, 0, width - 10, height, juce::Justification::centredLeft);
+        g.drawText(fileDuration, 100, 0, width - 10, height, juce::Justification::centred);
     }
 }
 
@@ -946,6 +1001,7 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
         auto file = playlistFiles[lastRowSelected];
         playerAudio.loadFile(file);
         playerAudio.start();
+		totalTimeLabel.setText(formatTime(playerAudio.getLengthInSeconds()), juce::dontSendNotification);
         updateMetadataDisplay();
     }
 }
@@ -977,4 +1033,11 @@ void PlayerGUI::updateABLoopDisplay()
         enableABLoopButton.setButtonText("A-B Loop: OFF");
         enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
     }
+}
+
+void PlayerGUI::unloadMetaData() {
+    metadataTitleLabel.setText("No file loaded", juce::dontSendNotification);
+	metadataArtistLabel.setText("", juce::dontSendNotification);
+	metadataAlbumLabel.setText("", juce::dontSendNotification);
+	metadataInfoLabel.setText("", juce::dontSendNotification);
 }

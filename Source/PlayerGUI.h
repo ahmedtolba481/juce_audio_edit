@@ -16,6 +16,7 @@ public:
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
+    void unloadMetaData();
     
     void timerCallback() override;
     
@@ -36,12 +37,12 @@ private:
     double lastSpeed = 1.0;
     juce::String lastFullTime;
     bool mutedState = false;
+    juce::Array<juce::File> playlistFiles;
+    juce::StringArray trackTimes;
     // GUI elements
 
     juce::ListBox playlistBox;
     juce::TextButton addFilesButton{ "Add Files" };
-    juce::Array<juce::File> playlistFiles;
-
     juce::ImageButton loadButton;
     juce::Image loadimage;
     juce::ImageButton PlayButton;
@@ -64,7 +65,9 @@ private:
     juce::ImageButton backwardButton;
     juce::Image backwardimage;
 	juce::TextButton loadLast{ "Load Last Session" };
-    
+	juce::TextButton clearPlaylistButton{ "Clear Playlist" };
+	juce::TextButton deleteTrackButton{ "Delete Track" };
+    juce::TextButton unLoadTrack{ "Unload Track" };
     // A-B Loop controls
     juce::TextButton setPointAButton{ "Set A" };
     juce::TextButton setPointBButton{ "Set B" };
