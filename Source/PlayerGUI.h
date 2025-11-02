@@ -68,6 +68,18 @@ private:
 // Forward declaration
 class PlayerGUI;
 
+// Waveform visualization component
+class WaveformComponent : public juce::Component
+{
+public:
+    WaveformComponent(PlayerAudio* audio);
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    
+private:
+    PlayerAudio* playerAudio;
+};
+
 // Model for markers list box
 class MarkersListBoxModel : public juce::ListBoxModel
 {
@@ -123,7 +135,7 @@ public:
     void addMarker();
     void jumpToMarker(int markerIndex);
     void deleteMarker(int markerIndex);
-    int getMarkerCount() const { return markers.size(); }
+    int getMarkerCount() const { return static_cast<int>(markers.size()); }
     const TrackMarker& getMarker(int index) const { return markers[index]; }
 
 private:
@@ -199,6 +211,9 @@ private:
     juce::Label currentTimeLabel;
     juce::Label totalTimeLabel;
     bool isDraggingSlider = false;
+    
+    // Waveform visualization
+    WaveformComponent waveformComponent;
 
 
     juce::Label playlistLabel;

@@ -72,6 +72,10 @@ public:
     void clearPositionB();
     // Unload Files
     void unloadFile();
+    
+    // Waveform functionality
+    const std::vector<float>& getWaveformData() const { return waveformData; }
+    void generateWaveform(const juce::File& file);
 
 private:
     juce::AudioFormatManager formatManager;
@@ -94,4 +98,7 @@ private:
     AudioMetadata metadata;
     void extractMetadata(const juce::File& file);
     juce::String convertTagLibString(const TagLib::String& str);
+    
+    // Waveform data
+    std::vector<float> waveformData;
 };

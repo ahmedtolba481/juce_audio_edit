@@ -209,12 +209,12 @@ int MarkersListBoxModel::getNumRows()
     return count;
 }
 
-void MarkersListBoxModel::paintListBoxItem(int rowNumber, juce::Graphics &g, int width, int height, bool rowIsSelected)
+void MarkersListBoxModel::paintListBoxItem(int /*rowNumber*/, juce::Graphics& /*g*/, int /*width*/, int /*height*/, bool /*rowIsSelected*/)
 {
     // Custom components handle painting
 }
 
-juce::Component *MarkersListBoxModel::refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component *existingComponentToUpdate)
+juce::Component *MarkersListBoxModel::refreshComponentForRow(int rowNumber, bool /*isRowSelected*/, juce::Component *existingComponentToUpdate)
 {
     if (owner == nullptr)
         return nullptr;
@@ -246,6 +246,140 @@ juce::Component *MarkersListBoxModel::refreshComponentForRow(int rowNumber, bool
     markerRow->updateRow(actualMarkerIndex, marker.label, owner->formatTime(marker.timestamp));
 
     return markerRow;
+}
+
+// WaveformComponent implementation
+WaveformComponent::WaveformComponent(PlayerAudio* audio) : playerAudio(audio)
+{
+}
+
+void WaveformComponent::paint(juce::Graphics& g)
+{
+    auto bounds = getLocalBounds();
+    
+    // Fill background
+    g.setColour(juce::Colour(0xFF2C3E50).withAlpha(0.3f));
+    g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
+    
+    // Draw waveform
+    if (playerAudio == nullptr)
+        return;
+    
+    const auto& waveformData = playerAudio->getWaveformData();
+    if (waveformData.empty())
+    {
+        // Draw placeholder text
+        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.setFont(juce::FontOptions(14.0f));
+        g.drawText("No waveform data", bounds, juce::Justification::centred);
+        return;
+    }
+    
+    const int width = bounds.getWidth();
+    const int height = bounds.getHeight();
+    const int centerY = height / 2;
+    
+    // Draw waveform
+    juce::Path waveformPath;
+    bool firstPoint = true;
+    
+    for (int i = 0; i < width; ++i)
+    {
+        float normalizedIndex = (float)i / (float)width;
+        int dataIndex = static_cast<int>(normalizedIndex * waveformData.size());
+        dataIndex = juce::jlimit(0, static_cast<int>(waveformData.size() - 1), dataIndex);
+        
+        float amplitude = waveformData[dataIndex];
+        float normalizedAmplitude = juce::jlimit(0.0f, 1.0f, amplitude);
+        
+        // Scale amplitude to fit height (with some padding)
+        float yPos = centerY - (normalizedAmplitude * centerY * 0.8f);
+        
+        if (firstPoint)
+        {
+            waveformPath.startNewSubPath(static_cast<float>(i), yPos);
+            firstPoint = false;
+        }
+        else
+        {
+            waveformPath.lineTo(static_cast<float>(i), yPos);
+        }
+    }
+    
+    // Draw mirrored bottom half
+    for (int i = width - 1; i >= 0; --i)
+    {
+        float normalizedIndex = (float)i / (float)width;
+        int dataIndex = static_cast<int>(normalizedIndex * waveformData.size());
+        dataIndex = juce::jlimit(0, static_cast<int>(waveformData.size() - 1), dataIndex);
+        
+        float amplitude = waveformData[dataIndex];
+        float normalizedAmplitude = juce::jlimit(0.0f, 1.0f, amplitude);
+        
+        float yPos = centerY + (normalizedAmplitude * centerY * 0.8f);
+        waveformPath.lineTo(static_cast<float>(i), yPos);
+    }
+    
+    waveformPath.closeSubPath();
+    
+    // Fill waveform
+    g.setColour(juce::Colour(0xFF3498DB).withAlpha(0.7f));
+    g.fillPath(waveformPath);
+    
+    // Draw outline
+    g.setColour(juce::Colour(0xFF2980B9));
+    g.strokePath(waveformPath, juce::PathStrokeType(1.0f));
+    
+    // Draw playback position indicator
+    if (playerAudio != nullptr && playerAudio->getLengthInSeconds() > 0.0)
+    {
+        double currentPos = playerAudio->getPosition();
+        double totalLength = playerAudio->getLengthInSeconds();
+        
+        if (totalLength > 0.0)
+        {
+            float normalizedPos = static_cast<float>(currentPos / totalLength);
+            
+            int playheadX = static_cast<int>(normalizedPos * width);
+            playheadX = juce::jlimit(0, width - 1, playheadX);
+            
+            // Draw playhead line
+            g.setColour(juce::Colours::white);
+            g.drawLine(static_cast<float>(playheadX), 0.0f,
+                      static_cast<float>(playheadX), static_cast<float>(height), 2.0f);
+            
+            // Draw playhead indicator circle
+            g.fillEllipse(static_cast<float>(playheadX - 5), static_cast<float>(height / 2 - 5),
+                         10.0f, 10.0f);
+        }
+    }
+    
+    // Draw A-B loop markers if applicable
+    if (playerAudio != nullptr && playerAudio->hasValidABLoop())
+    {
+        double pointA = playerAudio->getPointA();
+        double pointB = playerAudio->getPointB();
+        double totalLength = playerAudio->getLengthInSeconds();
+        
+        if (totalLength > 0.0)
+        {
+            int xA = static_cast<int>((pointA / totalLength) * width);
+            int xB = static_cast<int>((pointB / totalLength) * width);
+            
+            // Draw point A marker
+            g.setColour(juce::Colour(0xFF3498DB));
+            g.fillRect(xA - 2, 0, 4, height);
+            
+            // Draw point B marker
+            g.setColour(juce::Colour(0xFFE74C3C));
+            g.fillRect(xB - 2, 0, 4, height);
+        }
+    }
+}
+
+void WaveformComponent::resized()
+{
+    // Empty - layout handled by parent
 }
 
 void PlayerGUI::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
@@ -404,7 +538,7 @@ void PlayerGUI::drawTrackMarkers(juce::Graphics &g)
     }
 }
 
-PlayerGUI::PlayerGUI() : markersListBoxModel(this)
+PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAudio)
 {
     juce::PropertiesFile::Options options;
     options.applicationName = "JUCE-AudioPlayer";
@@ -675,6 +809,9 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this)
     playlistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
     playlistLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(playlistLabel);
+    
+    // Add waveform component
+    addAndMakeVisible(waveformComponent);
 }
 
 void PlayerGUI::resized()
@@ -712,14 +849,19 @@ void PlayerGUI::resized()
     currentTimeLabel.setBounds(20, positionY, 60, 20);
     totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
     positionSlider.setBounds(85, positionY, getWidth() - 170, 20);
+    
+    // Position waveform directly under the progress bar
+    int waveformY = positionY + 25;
+    int waveformHeight = 60;
+    waveformComponent.setBounds(85, waveformY, getWidth() - 170, waveformHeight);
 
-    volumeLabel.setBounds(20, 220, 80, 25);
-    volumeSlider.setBounds(110, 220, getWidth() - 130, 25);
+    volumeLabel.setBounds(20, waveformY + waveformHeight + 10, 80, 25);
+    volumeSlider.setBounds(110, waveformY + waveformHeight + 10, getWidth() - 130, 25);
 
-    speedLabel.setBounds(20, 255, 80, 25);
-    speedslider.setBounds(110, 255, getWidth() - 130, 25);
+    speedLabel.setBounds(20, waveformY + waveformHeight + 45, 80, 25);
+    speedslider.setBounds(110, waveformY + waveformHeight + 45, getWidth() - 130, 25);
 
-    int abLoopY = 290;
+    int abLoopY = waveformY + waveformHeight + 80;
     int abLoopButtonWidth = 100;
     int abLoopButtonHeight = 32;
     int abLoopSpacing = 10;
@@ -780,6 +922,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                         updateMetadataDisplay();
                         markersListBox.updateContent();
                         markersListBox.repaint();
+                        waveformComponent.repaint(); // Refresh waveform display
                     }
                     else
                     {
@@ -1012,6 +1155,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     }
                     
                     updateABLoopDisplay();
+                    waveformComponent.repaint();
                     
                     // Load markers when restoring last session
                     loadMarkers();
@@ -1105,6 +1249,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2980B9));
         }
         updateABLoopDisplay();
+        waveformComponent.repaint();
         repaint();
     }
     else if (button == &setPointBButton)
@@ -1120,6 +1265,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFC0392B));
         }
         updateABLoopDisplay();
+        waveformComponent.repaint();
         repaint();
     }
     else if (button == &clearABButton)
@@ -1129,6 +1275,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
         setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
         updateABLoopDisplay();
+        waveformComponent.repaint();
         repaint();
     }
     else if (button == &enableABLoopButton)
@@ -1137,6 +1284,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         playerAudio.setABLoopEnabled(isABLoopEnabled);
         enableABLoopButton.setToggleState(isABLoopEnabled, juce::dontSendNotification);
         updateABLoopDisplay();
+        waveformComponent.repaint();
         repaint();
     }
     else if (button == &clearPlaylistButton)
@@ -1209,6 +1357,9 @@ void PlayerGUI::timerCallback()
     {
         updatePositionSlider();
     }
+    
+    // Repaint waveform to update playhead position
+    waveformComponent.repaint();
 
     if (playerAudio.isPlaying() && !isLooping && !playerAudio.isABLoopEnabled())
     {
@@ -1309,8 +1460,8 @@ int PlayerGUI::getNumRows()
     return playlistFiles.size();
 }
 
-void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics &g,
-                                 int width, int height, bool rowIsSelected)
+void PlayerGUI::paintListBoxItem(int /*rowNumber*/, juce::Graphics& /*g*/,
+                                 int /*width*/, int /*height*/, bool /*rowIsSelected*/)
 {
     // This function is still called for fallback, but refreshComponentForRow will handle the rendering
     // with the custom component that includes the delete button
@@ -1484,6 +1635,7 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
             updateMetadataDisplay();
             markersListBox.updateContent();
             markersListBox.repaint();
+            waveformComponent.repaint(); // Refresh waveform when track changes
         }
     }
 }
