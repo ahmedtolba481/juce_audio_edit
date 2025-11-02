@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
 
@@ -21,10 +21,12 @@ public:
     void timerCallback() override;
     
     int getNumRows() override;
-    void paintListBoxItem(int rowNumber, juce::Graphics& g,
-    int width, int height, bool rowIsSelected) override;
+    void paintListBoxItem(int rowNumber, juce::Graphics& g,int width, int height, bool rowIsSelected) override;
     void selectedRowsChanged(int lastRowSelected) override;
+    void deleteTrack(int index);
+
 private:
+
     PlayerAudio playerAudio;
     bool isMuted = false;
     bool isLooping = false;
@@ -40,7 +42,7 @@ private:
     juce::Array<juce::File> playlistFiles;
     juce::StringArray trackTimes;
     // GUI elements
-
+    juce::Component* refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate) override;
     juce::ListBox playlistBox;
     juce::TextButton addFilesButton{ "Add Files" };
     juce::ImageButton loadButton;

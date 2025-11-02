@@ -578,7 +578,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         playerAudio.stop();
 
         PlayButton.setImages(false, true, true,
-            playimage, 1.0f, juce::Colours::transparentBlack,
+            playimage, 1.0f, juce:: Colours::transparentBlack,
             playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
             pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f)
         );
@@ -974,6 +974,59 @@ int PlayerGUI::getNumRows()
 {
     return playlistFiles.size();
 }
+juce::Component* PlayerGUI::refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate)
+{
+    if (rowNumber < 0 || rowNumber >= playlistFiles.size())
+        return nullptr;
+
+    struct RowComponent : public juce::Component
+    {
+        juce::Label label;
+        juce::Label duration;
+        juce::TextButton deleteButton;
+        std::function<void()> onDelete;
+
+        RowComponent()
+        {
+            addAndMakeVisible(label);
+            addAndMakeVisible(duration);
+            addAndMakeVisible(deleteButton);
+            deleteButton.setButtonText("Delete");
+            deleteButton.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
+            deleteButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+            deleteButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        }
+
+        void resized() override
+        {
+            auto area = getLocalBounds();
+            label.setBounds(area.removeFromLeft(getWidth() - 140));
+            duration.setBounds(area.removeFromLeft(70));
+            deleteButton.setBounds(area.reduced(5));
+        }
+
+        void paint(juce::Graphics& g) override
+        {
+            g.fillAll(juce::Colour(0xFF2C3E50));
+            g.setColour(juce::Colours::white);
+        }
+    };
+
+    auto* row = dynamic_cast<RowComponent*>(existingComponentToUpdate);
+
+    if (row == nullptr)
+        row = new RowComponent();
+
+    auto filename = playlistFiles[rowNumber].getFileNameWithoutExtension();
+    auto duration = trackTimes[rowNumber];
+
+    row->label.setText(filename, juce::dontSendNotification);
+    row->duration.setText(duration, juce::dontSendNotification);
+    row->onDelete = [this, rowNumber]() { deleteTrack(rowNumber); };
+    row->deleteButton.onClick = [row]() { if (row->onDelete) row->onDelete(); };
+
+    return row;
+}
 
 void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics& g,
     int width, int height, bool rowIsSelected)
@@ -981,16 +1034,18 @@ void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics& g,
     if (rowNumber < playlistFiles.size())
     {
         auto filename = playlistFiles[rowNumber].getFileNameWithoutExtension();
-		auto fileDuration = trackTimes[rowNumber];
+        auto fileDuration = trackTimes[rowNumber];
         if (rowIsSelected)
             g.fillAll(juce::Colour(0xFF3498DB));
         else
             g.fillAll(rowNumber % 2 == 0 ? juce::Colour(0xFF2C3E50) : juce::Colour(0xFF34495E));
 
+        // Draw filename
         g.setColour(juce::Colours::white);
         g.setFont(juce::FontOptions(13.0f, juce::Font::plain));
-        g.drawText(filename, 10, 0, width - 10, height, juce::Justification::centredLeft);
-        g.drawText(fileDuration, 100, 0, width - 10, height, juce::Justification::centred);
+        g.drawText(filename, 10, 0, width - 80, height, juce::Justification::centredLeft); // Reduced width to make room for button
+        g.drawText(fileDuration, 100, 0, width - 90, height, juce::Justification::centred);
+
     }
 }
 
@@ -1004,6 +1059,7 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
 		totalTimeLabel.setText(formatTime(playerAudio.getLengthInSeconds()), juce::dontSendNotification);
         updateMetadataDisplay();
     }
+
 }
 
 void PlayerGUI::updateABLoopDisplay()
@@ -1041,3 +1097,19 @@ void PlayerGUI::unloadMetaData() {
 	metadataAlbumLabel.setText("", juce::dontSendNotification);
 	metadataInfoLabel.setText("", juce::dontSendNotification);
 }
+
+void PlayerGUI::deleteTrack(int index)
+{
+    if (index >= 0 && index < playlistFiles.size())
+    {
+       playlistFiles.remove(index);
+      trackTimes.remove(index);
+      playlistBox.updateContent();
+        repaint();
+    }
+}
+
+
+
+
+
