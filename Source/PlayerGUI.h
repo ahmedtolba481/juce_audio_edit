@@ -22,7 +22,7 @@ public:
 
 private:
     juce::Rectangle<int> getDeleteButtonBounds() const;
-    bool isClickOnDeleteButton(const juce::MouseEvent &event) const;
+    bool isClickOnDeleteButton(const juce::MouseEvent &event);
     PlayerGUI *owner;
     int currentRow = -1;
     juce::Label filenameLabel;
@@ -56,7 +56,7 @@ public:
     
 private:
     juce::Rectangle<int> getDeleteButtonBounds() const;
-    bool isClickOnDeleteButton(const juce::MouseEvent& event) const;
+    bool isClickOnDeleteButton(const juce::MouseEvent& event);
     PlayerGUI* owner;
     int currentRow = -1;
     juce::Label markerLabel;
@@ -236,8 +236,6 @@ private:
     void setMuteButtonState(bool muted);
     void resetUIToEmptyState();
     void savePropertiesFileState();
-    void loadPlaylistFromProperties();
-    void setupButtonImages(juce::ImageButton& button, juce::Image& normalImage, juce::Image& hoverImage, juce::Image& downImage);
     
     // Friend access for MarkersListBoxModel
     friend class MarkersListBoxModel;

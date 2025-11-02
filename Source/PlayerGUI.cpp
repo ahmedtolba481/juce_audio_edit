@@ -71,7 +71,7 @@ juce::Rectangle<int> PlaylistRowComponent::getDeleteButtonBounds() const
     return juce::Rectangle<int>(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
 }
 
-bool PlaylistRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event) const
+bool PlaylistRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event)
 {
     auto localPos = event.getEventRelativeTo(this).position.toInt();
     return getDeleteButtonBounds().contains(localPos);
@@ -173,7 +173,7 @@ juce::Rectangle<int> MarkerRowComponent::getDeleteButtonBounds() const
     return juce::Rectangle<int>(bounds.getWidth() - 30, 2, 25, bounds.getHeight() - 4);
 }
 
-bool MarkerRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event) const
+bool MarkerRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event)
 {
     auto localPos = event.getEventRelativeTo(this).position.toInt();
     return getDeleteButtonBounds().contains(localPos);
@@ -666,7 +666,9 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this)
     markersListBox.setModel(&markersListBoxModel);
     addAndMakeVisible(markersListBox);
 
-    loadMarkers();
+    // Reset marker counter for new session (markers will be loaded when restoring last session)
+    markerCounter = 0;
+    markers.clear();
 
     playlistLabel.setText("Playlist", juce::dontSendNotification);
     playlistLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
@@ -747,49 +749,7 @@ void PlayerGUI::resized()
 PlayerGUI::~PlayerGUI()
 {
     stopTimer();
-    if (propertiesFile)
-    {
-        propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
-        propertiesFile->setValue("lastPosition", playerAudio.getPosition());
-        propertiesFile->setValue("volume", isMuted ? previousGain : volumeSlider.getValue());
-        propertiesFile->setValue("speed", speedslider.getValue());
-        propertiesFile->setValue("totalTime", totalTimeLabel.getText());
-        propertiesFile->setValue("mutedState", isMuted);
-        propertiesFile->setValue("currentPlayingIndex", currentPlayingIndex);
-
-        juce::StringArray playlistPaths;
-        for (auto &file : playlistFiles)
-        {
-            playlistPaths.add(file.getFullPathName());
-        }
-        propertiesFile->setValue("playlistFiles", playlistPaths.joinIntoString("\n"));
-
-        propertiesFile->setValue("trackTimes", trackTimes.joinIntoString("\n"));
-
-        if (playerAudio.isPositionSetA())
-        {
-            propertiesFile->setValue("abLoopPointA", playerAudio.getPointA());
-        }
-        else
-        {
-            propertiesFile->removeValue("abLoopPointA");
-        }
-
-        if (playerAudio.isPositionSetB())
-        {
-            propertiesFile->setValue("abLoopPointB", playerAudio.getPointB());
-        }
-        else
-        {
-            propertiesFile->removeValue("abLoopPointB");
-        }
-
-        propertiesFile->setValue("abLoopEnabled", playerAudio.isABLoopEnabled());
-
-        saveMarkers();
-
-        propertiesFile->saveIfNeeded();
-    }
+    savePropertiesFileState();
 }
 
 void PlayerGUI::buttonClicked(juce::Button *button)
@@ -921,13 +881,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     if (file.existsAsFile())
                     {
                         playlistFiles.add(file);
-
-                        juce::AudioFormatManager formatManager;
-                        formatManager.registerBasicFormats();
-                        std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
-                        double duration = 0.0;
-                        if (reader != nullptr)
-                            duration = reader->lengthInSamples / reader->sampleRate;
+                        double duration = calculateFileDuration(file);
                         trackTimes.add(formatTime(duration));
                     }
                 }
@@ -953,12 +907,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             {
                 int index = trackTimes.size();
                 juce::File file = playlistFiles[index];
-                juce::AudioFormatManager formatManager;
-                formatManager.registerBasicFormats();
-                std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
-                double duration = 0.0;
-                if (reader != nullptr)
-                    duration = reader->lengthInSamples / reader->sampleRate;
+                double duration = calculateFileDuration(file);
                 trackTimes.add(formatTime(duration));
             }
         }
@@ -972,7 +921,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
 
             if (lastFile.existsAsFile())
             {
-                currentPlayingIndex = -1;
                 if (savedIndex >= 0 && savedIndex < playlistFiles.size() && playlistFiles[savedIndex] == lastFile)
                 {
                     currentPlayingIndex = savedIndex;
@@ -1009,10 +957,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                         playerAudio.setGain(0.0f);
                         volumeSlider.setValue(0.0, juce::dontSendNotification);
                         volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
-                        MuteButton.setImages(false, true, true,
-                            mutedImage, 1.0f, juce::Colours::transparentBlack,
-                            mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                            unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
                     }
                     else
                     {
@@ -1020,11 +964,8 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                         volumeSlider.setValue(lastVolume, juce::dontSendNotification);
                         previousGain = (float)lastVolume;
                         volumeLabel.setText("Volume: " + juce::String(lastVolume, 2), juce::dontSendNotification);
-                        MuteButton.setImages(false, true, true,
-                            unmutedImage, 1.0f, juce::Colours::transparentBlack,
-                            unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                            mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
                     }
+                    setMuteButtonState(mutedState);
 
                     speedslider.setValue(lastSpeed, juce::dontSendNotification);
                     speedLabel.setText("Speed: " + juce::String(lastSpeed, 2) + "x", juce::dontSendNotification);
@@ -1071,8 +1012,10 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     }
                     
                     updateABLoopDisplay();
-                    markersListBox.updateContent();
-                    markersListBox.repaint();
+                    
+                    // Load markers when restoring last session
+                    loadMarkers();
+                    
                     repaint();
 
                     updateMetadataDisplay(); });
@@ -1084,20 +1027,12 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         if (playerAudio.isPlaying())
         {
             playerAudio.stop();
-
-            PlayButton.setImages(false, true, true,
-                                 playimage, 1.0f, juce::Colours::transparentBlack,
-                                 playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(false);
         }
         else
         {
             playerAudio.start();
-
-            PlayButton.setImages(false, true, true,
-                                 pauseimage, 1.0f, juce::Colours::transparentBlack,
-                                 pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(true);
         }
     }
     else if (button == &MuteButton)
@@ -1108,10 +1043,6 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             volumeSlider.setValue(previousGain, juce::dontSendNotification);
             volumeLabel.setText("Volume: " + juce::String((double)previousGain, 2), juce::dontSendNotification);
             isMuted = false;
-            MuteButton.setImages(false, true, true,
-                                 unmutedImage, 1.0f, juce::Colours::transparentBlack,
-                                 unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
         else
         {
@@ -1120,11 +1051,8 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             volumeSlider.setValue(0.0, juce::dontSendNotification);
             volumeLabel.setText("Volume: 0.00", juce::dontSendNotification);
             isMuted = true;
-            MuteButton.setImages(false, true, true,
-                                 mutedImage, 1.0f, juce::Colours::transparentBlack,
-                                 mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
+        setMuteButtonState(isMuted);
     }
     else if (button == &LoopButton)
     {
@@ -1218,30 +1146,12 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         currentPlayingIndex = -1;
         playlistBox.updateContent();
         playlistBox.repaint();
-        playerAudio.setPosition(0.0);
-        PlayButton.setImages(false, true, true,
-                             playimage, 1.0f, juce::Colours::transparentBlack,
-                             playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                             pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
-        playerAudio.unloadFile();
-        unloadMetaData();
-        positionSlider.setValue(0.0, juce::dontSendNotification);
-        currentTimeLabel.setText("00:00", juce::dontSendNotification);
-        totalTimeLabel.setText("00:00", juce::dontSendNotification);
+        resetUIToEmptyState();
     }
     else if (button == &unLoadTrack)
     {
         currentPlayingIndex = -1;
-        playerAudio.setPosition(0.0);
-        PlayButton.setImages(false, true, true,
-                             playimage, 1.0f, juce::Colours::transparentBlack,
-                             playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                             pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
-        playerAudio.unloadFile();
-        unloadMetaData();
-        positionSlider.setValue(0.0, juce::dontSendNotification);
-        currentTimeLabel.setText("00:00", juce::dontSendNotification);
-        totalTimeLabel.setText("00:00", juce::dontSendNotification);
+        resetUIToEmptyState();
     }
     else if (button == &addMarkerButton)
     {
@@ -1326,47 +1236,7 @@ void PlayerGUI::timerCallback()
     static int counter = 0;
     if (++counter >= 100)
     {
-        if (propertiesFile)
-        {
-            propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
-            propertiesFile->setValue("lastPosition", playerAudio.getPosition());
-            propertiesFile->setValue("volume", isMuted ? previousGain : volumeSlider.getValue());
-            propertiesFile->setValue("speed", speedslider.getValue());
-            propertiesFile->setValue("totalTime", totalTimeLabel.getText());
-            propertiesFile->setValue("mutedState", isMuted);
-            propertiesFile->setValue("currentPlayingIndex", currentPlayingIndex);
-
-            juce::StringArray playlistPaths;
-            for (auto &file : playlistFiles)
-            {
-                playlistPaths.add(file.getFullPathName());
-            }
-            propertiesFile->setValue("playlistFiles", playlistPaths.joinIntoString("\n"));
-            propertiesFile->setValue("trackTimes", trackTimes.joinIntoString("\n"));
-
-            if (playerAudio.isPositionSetA())
-            {
-                propertiesFile->setValue("abLoopPointA", playerAudio.getPointA());
-            }
-            else
-            {
-                propertiesFile->removeValue("abLoopPointA");
-            }
-
-            if (playerAudio.isPositionSetB())
-            {
-                propertiesFile->setValue("abLoopPointB", playerAudio.getPointB());
-            }
-            else
-            {
-                propertiesFile->removeValue("abLoopPointB");
-            }
-
-            propertiesFile->setValue("abLoopEnabled", playerAudio.isABLoopEnabled());
-            saveMarkers();
-
-            propertiesFile->saveIfNeeded();
-        }
+        savePropertiesFileState();
         counter = 0;
     }
 }
@@ -1606,11 +1476,7 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
         if (playerAudio.loadFile(file))
         {
             playerAudio.start();
-
-            PlayButton.setImages(false, true, true,
-                                 pauseimage, 1.0f, juce::Colours::transparentBlack,
-                                 pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(true);
 
             totalTimeLabel.setText(formatTime(playerAudio.getLengthInSeconds()), juce::dontSendNotification);
             currentTimeLabel.setText("00:00", juce::dontSendNotification);
@@ -1673,10 +1539,7 @@ void PlayerGUI::playNextTrack()
     else
     {
         playerAudio.stop();
-        PlayButton.setImages(false, true, true,
-                             playimage, 1.0f, juce::Colours::transparentBlack,
-                             playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                             pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+        setPlayButtonState(false);
         currentPlayingIndex = -1;
     }
 }
@@ -1737,10 +1600,7 @@ void PlayerGUI::deleteTrack(int index)
             else
             {
                 currentPlayingIndex = -1;
-                PlayButton.setImages(false, true, true,
-                                     playimage, 1.0f, juce::Colours::transparentBlack,
-                                     playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                     pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+                setPlayButtonState(false);
                 unloadMetaData();
                 positionSlider.setValue(0.0, juce::dontSendNotification);
                 currentTimeLabel.setText("00:00", juce::dontSendNotification);
@@ -1808,10 +1668,7 @@ void PlayerGUI::jumpToMarker(int markerIndex)
         if (!playerAudio.isPlaying())
         {
             playerAudio.start();
-            PlayButton.setImages(false, true, true,
-                                 pauseimage, 1.0f, juce::Colours::transparentBlack,
-                                 pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(true);
         }
 
         updatePositionSlider();
@@ -1901,7 +1758,10 @@ void PlayerGUI::loadMarkers()
     markersListBox.repaint();
 }
 
-// Helper method implementations
+//==============================================================================//
+//                      Helper Method Implementations                           //
+//==============================================================================//
+
 int PlayerGUI::findCurrentFileIndexInPlaylist() const
 {
     auto currentFile = playerAudio.getLastLoadedFile();
@@ -1919,19 +1779,19 @@ int PlayerGUI::findCurrentFileIndexInPlaylist() const
         if (playlistFiles[i] == currentFile)
             return i;
     }
-    
+
     return -1;
 }
 
-double PlayerGUI::calculateFileDuration(const juce::File& file) const
+double PlayerGUI::calculateFileDuration(const juce::File &file) const
 {
     juce::AudioFormatManager formatManager;
     formatManager.registerBasicFormats();
     std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
-    
+
     if (reader != nullptr)
         return reader->lengthInSamples / reader->sampleRate;
-    
+
     return 0.0;
 }
 
