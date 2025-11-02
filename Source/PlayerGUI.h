@@ -21,6 +21,8 @@ public:
     void setBackgroundColour(juce::Colour colour);
 
 private:
+    juce::Rectangle<int> getDeleteButtonBounds() const;
+    bool isClickOnDeleteButton(const juce::MouseEvent &event) const;
     PlayerGUI *owner;
     int currentRow = -1;
     juce::Label filenameLabel;
@@ -53,12 +55,31 @@ public:
     void mouseDown(const juce::MouseEvent& event) override;
     
 private:
+    juce::Rectangle<int> getDeleteButtonBounds() const;
+    bool isClickOnDeleteButton(const juce::MouseEvent& event) const;
     PlayerGUI* owner;
     int currentRow = -1;
     juce::Label markerLabel;
     juce::Label timeLabel;
     juce::TextButton deleteButton;
     juce::Colour backgroundColour = juce::Colour(0xFF34495E);
+};
+
+// Forward declaration
+class PlayerGUI;
+
+// Model for markers list box
+class MarkersListBoxModel : public juce::ListBoxModel
+{
+public:
+    MarkersListBoxModel(PlayerGUI* parent) : owner(parent) {}
+    
+    int getNumRows() override;
+    void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
+    juce::Component* refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate) override;
+    
+private:
+    PlayerGUI* owner;
 };
 
 class PlayerGUI : public juce::Component,
@@ -167,6 +188,7 @@ private:
     juce::TextButton clearMarkersButton{"Clear All Markers"};
     juce::ListBox markersListBox;
     juce::Label markersLabel;
+    MarkersListBoxModel markersListBoxModel;
 
     juce::Slider volumeSlider;
     juce::Slider speedslider;
@@ -177,6 +199,10 @@ private:
     juce::Label currentTimeLabel;
     juce::Label totalTimeLabel;
     bool isDraggingSlider = false;
+
+
+    juce::Label playlistLabel;
+
 
     // Metadata display labels
     juce::Label metadataTitleLabel;
@@ -202,6 +228,20 @@ private:
     void loadMarkers();
 
     void updateMetadataDisplay();
+    
+    // Helper methods
+    int findCurrentFileIndexInPlaylist() const;
+    double calculateFileDuration(const juce::File& file) const;
+    void setPlayButtonState(bool isPlaying);
+    void setMuteButtonState(bool muted);
+    void resetUIToEmptyState();
+    void savePropertiesFileState();
+    void loadPlaylistFromProperties();
+    void setupButtonImages(juce::ImageButton& button, juce::Image& normalImage, juce::Image& hoverImage, juce::Image& downImage);
+    
+    // Friend access for MarkersListBoxModel
+    friend class MarkersListBoxModel;
+    const std::vector<TrackMarker>& getMarkers() const { return markers; }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };

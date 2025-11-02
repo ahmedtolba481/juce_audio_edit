@@ -65,30 +65,30 @@ void PlaylistRowComponent::setBackgroundColour(juce::Colour colour)
     repaint();
 }
 
-void PlaylistRowComponent::mouseDown(const juce::MouseEvent &event)
+juce::Rectangle<int> PlaylistRowComponent::getDeleteButtonBounds() const
+{
+    auto bounds = getLocalBounds();
+    return juce::Rectangle<int>(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
+}
+
+bool PlaylistRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event) const
 {
     auto localPos = event.getEventRelativeTo(this).position.toInt();
-    auto bounds = getLocalBounds();
-    juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
+    return getDeleteButtonBounds().contains(localPos);
+}
 
-    if (deleteButtonBounds.contains(localPos))
-    {
+void PlaylistRowComponent::mouseDown(const juce::MouseEvent &event)
+{
+    if (isClickOnDeleteButton(event))
         return;
-    }
 
     Component::mouseDown(event);
 }
 
 void PlaylistRowComponent::mouseDoubleClick(const juce::MouseEvent &event)
 {
-    auto localPos = event.getEventRelativeTo(this).position.toInt();
-    auto bounds = getLocalBounds();
-    juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
-
-    if (deleteButtonBounds.contains(localPos))
-    {
+    if (isClickOnDeleteButton(event))
         return;
-    }
 
     if (owner != nullptr && currentRow >= 0 && currentRow < owner->getPlaylistSize())
     {
@@ -98,14 +98,8 @@ void PlaylistRowComponent::mouseDoubleClick(const juce::MouseEvent &event)
 
 void PlaylistRowComponent::mouseDrag(const juce::MouseEvent &event)
 {
-    auto localPos = event.getEventRelativeTo(this).position.toInt();
-    auto bounds = getLocalBounds();
-    juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
-
-    if (deleteButtonBounds.contains(localPos))
-    {
+    if (isClickOnDeleteButton(event))
         return;
-    }
 
     if (currentRow >= 0 && event.mouseWasDraggedSinceMouseDown())
     {
@@ -117,19 +111,19 @@ void PlaylistRowComponent::mouseDrag(const juce::MouseEvent &event)
 }
 
 // MarkerRowComponent implementation
-MarkerRowComponent::MarkerRowComponent(PlayerGUI* parent) : owner(parent)
+MarkerRowComponent::MarkerRowComponent(PlayerGUI *parent) : owner(parent)
 {
     markerLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     markerLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
     markerLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(markerLabel);
-    
+
     timeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF3498DB));
     timeLabel.setFont(juce::FontOptions(12.0f, juce::Font::plain));
     timeLabel.setJustificationType(juce::Justification::centredRight);
     timeLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(timeLabel);
-    
+
     deleteButton.setButtonText("X");
     deleteButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
     deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFC0392B));
@@ -138,7 +132,7 @@ MarkerRowComponent::MarkerRowComponent(PlayerGUI* parent) : owner(parent)
     addAndMakeVisible(deleteButton);
 }
 
-void MarkerRowComponent::updateRow(int rowIndex, const juce::String& label, const juce::String& time)
+void MarkerRowComponent::updateRow(int rowIndex, const juce::String &label, const juce::String &time)
 {
     currentRow = rowIndex;
     markerLabel.setText(label, juce::dontSendNotification);
@@ -154,10 +148,10 @@ void MarkerRowComponent::resized()
     markerLabel.setBounds(10, 0, bounds.getWidth() - 110, bounds.getHeight());
 }
 
-void MarkerRowComponent::paint(juce::Graphics& g)
+void MarkerRowComponent::paint(juce::Graphics &g)
 {
     g.fillAll(backgroundColour);
-    
+
     if (isMouseOver())
     {
         g.setColour(juce::Colours::white.withAlpha(0.1f));
@@ -165,7 +159,7 @@ void MarkerRowComponent::paint(juce::Graphics& g)
     }
 }
 
-void MarkerRowComponent::buttonClicked(juce::Button* button)
+void MarkerRowComponent::buttonClicked(juce::Button *button)
 {
     if (button == &deleteButton && owner != nullptr)
     {
@@ -173,21 +167,85 @@ void MarkerRowComponent::buttonClicked(juce::Button* button)
     }
 }
 
-void MarkerRowComponent::mouseDown(const juce::MouseEvent& event)
+juce::Rectangle<int> MarkerRowComponent::getDeleteButtonBounds() const
+{
+    auto bounds = getLocalBounds();
+    return juce::Rectangle<int>(bounds.getWidth() - 30, 2, 25, bounds.getHeight() - 4);
+}
+
+bool MarkerRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event) const
 {
     auto localPos = event.getEventRelativeTo(this).position.toInt();
-    auto bounds = getLocalBounds();
-    juce::Rectangle<int> deleteButtonBounds(bounds.getWidth() - 30, 2, 25, bounds.getHeight() - 4);
-    
-    if (deleteButtonBounds.contains(localPos))
-    {
+    return getDeleteButtonBounds().contains(localPos);
+}
+
+void MarkerRowComponent::mouseDown(const juce::MouseEvent &event)
+{
+    if (isClickOnDeleteButton(event))
         return;
-    }
-    
+
     if (owner != nullptr && currentRow >= 0)
     {
         owner->jumpToMarker(currentRow);
     }
+}
+
+// MarkersListBoxModel implementation
+int MarkersListBoxModel::getNumRows()
+{
+    if (owner == nullptr)
+        return 0;
+
+    juce::String currentFileId = owner->getCurrentFileId();
+    int count = 0;
+
+    // Count markers for the current file
+    for (const auto &marker : owner->getMarkers())
+    {
+        if (marker.fileId == currentFileId)
+            count++;
+    }
+
+    return count;
+}
+
+void MarkersListBoxModel::paintListBoxItem(int rowNumber, juce::Graphics &g, int width, int height, bool rowIsSelected)
+{
+    // Custom components handle painting
+}
+
+juce::Component *MarkersListBoxModel::refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component *existingComponentToUpdate)
+{
+    if (owner == nullptr)
+        return nullptr;
+
+    juce::String currentFileId = owner->getCurrentFileId();
+    const auto &markers = owner->getMarkers();
+    std::vector<int> currentFileMarkerIndices;
+
+    // Get indices of markers for current file
+    for (int i = 0; i < static_cast<int>(markers.size()); i++)
+    {
+        if (markers[i].fileId == currentFileId)
+            currentFileMarkerIndices.push_back(i);
+    }
+
+    if (rowNumber >= static_cast<int>(currentFileMarkerIndices.size()))
+        return nullptr;
+
+    int actualMarkerIndex = currentFileMarkerIndices[rowNumber];
+
+    MarkerRowComponent *markerRow = dynamic_cast<MarkerRowComponent *>(existingComponentToUpdate);
+
+    if (markerRow == nullptr)
+    {
+        markerRow = new MarkerRowComponent(owner);
+    }
+
+    const auto &marker = markers[actualMarkerIndex];
+    markerRow->updateRow(actualMarkerIndex, marker.label, owner->formatTime(marker.timestamp));
+
+    return markerRow;
 }
 
 void PlayerGUI::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
@@ -306,7 +364,7 @@ void PlayerGUI::drawABLoopMarkers(juce::Graphics &g)
     }
 }
 
-void PlayerGUI::drawTrackMarkers(juce::Graphics& g)
+void PlayerGUI::drawTrackMarkers(juce::Graphics &g)
 {
     if (playerAudio.getLengthInSeconds() <= 0.0)
         return;
@@ -323,7 +381,7 @@ void PlayerGUI::drawTrackMarkers(juce::Graphics& g)
     int trackY = sliderBounds.getY();
     int trackHeight = sliderBounds.getHeight();
 
-    for (const auto& marker : markers)
+    for (const auto &marker : markers)
     {
         if (marker.fileId != currentFileId)
             continue;
@@ -346,7 +404,7 @@ void PlayerGUI::drawTrackMarkers(juce::Graphics& g)
     }
 }
 
-PlayerGUI::PlayerGUI()
+PlayerGUI::PlayerGUI() : markersListBoxModel(this)
 {
     juce::PropertiesFile::Options options;
     options.applicationName = "JUCE-AudioPlayer";
@@ -605,10 +663,16 @@ PlayerGUI::PlayerGUI()
     markersListBox.setRowHeight(26);
     markersListBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF34495E));
     markersListBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF2C3E50));
-    markersListBox.setModel(this);
+    markersListBox.setModel(&markersListBoxModel);
     addAndMakeVisible(markersListBox);
 
     loadMarkers();
+
+    playlistLabel.setText("Playlist", juce::dontSendNotification);
+    playlistLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    playlistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    playlistLabel.setJustificationType(juce::Justification::centredLeft);
+    addAndMakeVisible(playlistLabel);
 }
 
 void PlayerGUI::resized()
@@ -672,13 +736,12 @@ void PlayerGUI::resized()
     markersLabel.setBounds(20, markerY, 150, 25);
     addMarkerButton.setBounds(180, markerY, 100, 25);
     clearMarkersButton.setBounds(290, markerY, 130, 25);
-
+    playlistLabel.setBounds(625, markerY, 150, 25);
     int remainingHeight = getHeight() - (markerY + 35);
-    int playlistHeight = static_cast<int>(remainingHeight * 0.6);
-    int markersHeight = remainingHeight - playlistHeight - 10;
+    int playlistandMarkerListHeight = static_cast<int>(remainingHeight * 0.6);
 
-    playlistBox.setBounds(20, markerY + 35, getWidth() - 40, playlistHeight);
-    markersListBox.setBounds(20, markerY + 35 + playlistHeight + 10, getWidth() - 40, markersHeight);
+    playlistBox.setBounds(625, markerY + 35, 550, playlistandMarkerListHeight);
+    markersListBox.setBounds(25, markerY + 35, 550, playlistandMarkerListHeight);
 }
 
 PlayerGUI::~PlayerGUI()
@@ -771,31 +834,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
     }
     else if (button == &restartButton)
     {
-        auto currentFile = playerAudio.getLastLoadedFile();
-        if (currentFile.existsAsFile() && playlistFiles.size() > 0)
-        {
-            bool found = false;
-            if (currentPlayingIndex >= 0 && currentPlayingIndex < playlistFiles.size())
-            {
-                if (playlistFiles[currentPlayingIndex] == currentFile)
-                {
-                    found = true;
-                }
-            }
-
-            if (!found)
-            {
-                for (int i = 0; i < playlistFiles.size(); i++)
-                {
-                    if (playlistFiles[i] == currentFile)
-                    {
-                        currentPlayingIndex = i;
-                        break;
-                    }
-                }
-            }
-        }
-
+        currentPlayingIndex = findCurrentFileIndexInPlaylist();
         double currentPos = playerAudio.getPosition();
 
         if (currentPos <= 0.02 && currentPlayingIndex > 0 && playlistFiles.size() > 1)
@@ -805,10 +844,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         else
         {
             playerAudio.setPosition(0.0);
-            PlayButton.setImages(false, true, true,
-                                 pauseimage, 1.0f, juce::Colours::transparentBlack,
-                                 pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(true);
             playerAudio.start();
         }
     }
@@ -824,15 +860,10 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             [this](const juce::FileChooser &fc)
             {
                 auto files = fc.getResults();
-                double duration = 0.0;
                 for (auto &f : files)
                 {
                     playlistFiles.addIfNotAlreadyThere(f);
-                    juce::AudioFormatManager formatManager;
-                    formatManager.registerBasicFormats();
-                    std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(f));
-                    if (reader != nullptr)
-                        duration = reader->lengthInSamples / reader->sampleRate;
+                    double duration = calculateFileDuration(f);
                     trackTimes.addIfNotAlreadyThere(formatTime(duration));
                 }
 
@@ -842,31 +873,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
     }
     else if (button == &BeginButton)
     {
-        auto currentFile = playerAudio.getLastLoadedFile();
-        if (currentFile.existsAsFile() && playlistFiles.size() > 0)
-        {
-            bool found = false;
-            if (currentPlayingIndex >= 0 && currentPlayingIndex < playlistFiles.size())
-            {
-                if (playlistFiles[currentPlayingIndex] == currentFile)
-                {
-                    found = true;
-                }
-            }
-
-            if (!found)
-            {
-                for (int i = 0; i < playlistFiles.size(); i++)
-                {
-                    if (playlistFiles[i] == currentFile)
-                    {
-                        currentPlayingIndex = i;
-                        break;
-                    }
-                }
-            }
-        }
-
+        currentPlayingIndex = findCurrentFileIndexInPlaylist();
         double currentPos = playerAudio.getPosition();
 
         if (currentPos <= 0.02 && currentPlayingIndex > 0 && playlistFiles.size() > 1)
@@ -877,11 +884,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         {
             playerAudio.setPosition(0.0);
             playerAudio.stop();
-
-            PlayButton.setImages(false, true, true,
-                                 playimage, 1.0f, juce::Colours::transparentBlack,
-                                 playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(false);
         }
     }
     else if (button == &EndButton)
@@ -890,20 +893,13 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         {
             playerAudio.setPosition(0.0);
             playerAudio.start();
-            PlayButton.setImages(false, true, true,
-                                 pauseimage, 1.0f, juce::Colours::transparentBlack,
-                                 pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(true);
         }
         else
         {
             playerAudio.setPosition(playerAudio.getLength() - 0.05);
             playerAudio.stop();
-
-            PlayButton.setImages(false, true, true,
-                                 playimage, 1.0f, juce::Colours::transparentBlack,
-                                 playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                 pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+            setPlayButtonState(false);
         }
     }
     else if (button == &loadLast)
@@ -1001,7 +997,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                 playerAudio.loadFile(lastFile);
 
                 juce::Timer::callAfterDelay(300, [this]()
-                {
+                                            {
                     playerAudio.setSpeed(static_cast<float>(lastSpeed));
                     playerAudio.setPosition(lastPosition);
 
@@ -1079,8 +1075,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     markersListBox.repaint();
                     repaint();
 
-                    updateMetadataDisplay();
-                });
+                    updateMetadataDisplay(); });
             }
         }
     }
@@ -1453,41 +1448,7 @@ void PlayerGUI::paintListBoxItem(int rowNumber, juce::Graphics &g,
 
 juce::Component *PlayerGUI::refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component *existingComponentToUpdate)
 {
-    // Determine which ListBox is requesting this
-    auto* parent = existingComponentToUpdate != nullptr ? existingComponentToUpdate->getParentComponent() : nullptr;
-    
-    // Check if this is for the markers list
-    if (parent == &markersListBox || (!existingComponentToUpdate && rowNumber < static_cast<int>(markers.size())))
-    {
-        juce::String currentFileId = getCurrentFileId();
-        std::vector<int> currentFileMarkerIndices;
-        
-        // Get indices of markers for current file
-        for (int i = 0; i < static_cast<int>(markers.size()); i++)
-        {
-            if (markers[i].fileId == currentFileId)
-                currentFileMarkerIndices.push_back(i);
-        }
-        
-        if (rowNumber >= static_cast<int>(currentFileMarkerIndices.size()))
-            return nullptr;
-            
-        int actualMarkerIndex = currentFileMarkerIndices[rowNumber];
-        
-        MarkerRowComponent* markerRow = dynamic_cast<MarkerRowComponent*>(existingComponentToUpdate);
-        
-        if (markerRow == nullptr)
-        {
-            markerRow = new MarkerRowComponent(this);
-        }
-        
-        const auto& marker = markers[actualMarkerIndex];
-        markerRow->updateRow(actualMarkerIndex, marker.label, formatTime(marker.timestamp));
-        
-        return markerRow;
-    }
-    
-    // Handle playlist
+    // Handle playlist only (markers are handled by MarkersListBoxModel)
     if (rowNumber >= playlistFiles.size())
         return nullptr;
 
@@ -1814,7 +1775,8 @@ void PlayerGUI::addMarker()
     markers.emplace_back(currentTime, markerLabel, fileId);
 
     std::sort(markers.begin(), markers.end(),
-              [](const TrackMarker& a, const TrackMarker& b) {
+              [](const TrackMarker &a, const TrackMarker &b)
+              {
                   return a.timestamp < b.timestamp;
               });
 
@@ -1829,7 +1791,7 @@ void PlayerGUI::jumpToMarker(int markerIndex)
 {
     if (markerIndex >= 0 && markerIndex < static_cast<int>(markers.size()))
     {
-        const auto& marker = markers[markerIndex];
+        const auto &marker = markers[markerIndex];
 
         if (marker.fileId != getCurrentFileId())
         {
@@ -1847,9 +1809,9 @@ void PlayerGUI::jumpToMarker(int markerIndex)
         {
             playerAudio.start();
             PlayButton.setImages(false, true, true,
-                                pauseimage, 1.0f, juce::Colours::transparentBlack,
-                                pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
-                                playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+                                 pauseimage, 1.0f, juce::Colours::transparentBlack,
+                                 pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                                 playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
 
         updatePositionSlider();
@@ -1889,11 +1851,11 @@ void PlayerGUI::saveMarkers()
         return;
 
     juce::StringArray markerData;
-    for (const auto& marker : markers)
+    for (const auto &marker : markers)
     {
         juce::String data = juce::String(marker.timestamp) + "|" +
-                           marker.label + "|" +
-                           marker.fileId;
+                            marker.label + "|" +
+                            marker.fileId;
         markerData.add(data);
     }
 
@@ -1916,7 +1878,7 @@ void PlayerGUI::loadMarkers()
         juce::StringArray markerLines;
         markerLines.addTokens(savedMarkers, "\n", "");
 
-        for (const auto& line : markerLines)
+        for (const auto &line : markerLines)
         {
             if (line.isEmpty())
                 continue;
@@ -1937,4 +1899,122 @@ void PlayerGUI::loadMarkers()
 
     markersListBox.updateContent();
     markersListBox.repaint();
+}
+
+// Helper method implementations
+int PlayerGUI::findCurrentFileIndexInPlaylist() const
+{
+    auto currentFile = playerAudio.getLastLoadedFile();
+    if (!currentFile.existsAsFile() || playlistFiles.isEmpty())
+        return -1;
+
+    if (currentPlayingIndex >= 0 && currentPlayingIndex < playlistFiles.size())
+    {
+        if (playlistFiles[currentPlayingIndex] == currentFile)
+            return currentPlayingIndex;
+    }
+
+    for (int i = 0; i < playlistFiles.size(); i++)
+    {
+        if (playlistFiles[i] == currentFile)
+            return i;
+    }
+    
+    return -1;
+}
+
+double PlayerGUI::calculateFileDuration(const juce::File& file) const
+{
+    juce::AudioFormatManager formatManager;
+    formatManager.registerBasicFormats();
+    std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(file));
+    
+    if (reader != nullptr)
+        return reader->lengthInSamples / reader->sampleRate;
+    
+    return 0.0;
+}
+
+void PlayerGUI::setPlayButtonState(bool isPlaying)
+{
+    if (isPlaying)
+    {
+        PlayButton.setImages(false, true, true,
+                             pauseimage, 1.0f, juce::Colours::transparentBlack,
+                             pauseimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                             playimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+    }
+    else
+    {
+        PlayButton.setImages(false, true, true,
+                             playimage, 1.0f, juce::Colours::transparentBlack,
+                             playimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                             pauseimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+    }
+}
+
+void PlayerGUI::setMuteButtonState(bool muted)
+{
+    if (muted)
+    {
+        MuteButton.setImages(false, true, true,
+                             mutedImage, 1.0f, juce::Colours::transparentBlack,
+                             mutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                             unmutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+    }
+    else
+    {
+        MuteButton.setImages(false, true, true,
+                             unmutedImage, 1.0f, juce::Colours::transparentBlack,
+                             unmutedImage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                             mutedImage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+    }
+}
+
+void PlayerGUI::resetUIToEmptyState()
+{
+    playerAudio.setPosition(0.0);
+    playerAudio.stop();
+    playerAudio.unloadFile();
+    setPlayButtonState(false);
+    unloadMetaData();
+    positionSlider.setValue(0.0, juce::dontSendNotification);
+    currentTimeLabel.setText("00:00", juce::dontSendNotification);
+    totalTimeLabel.setText("00:00", juce::dontSendNotification);
+}
+
+void PlayerGUI::savePropertiesFileState()
+{
+    if (!propertiesFile)
+        return;
+
+    propertiesFile->setValue("lastFilePath", playerAudio.getLastLoadedFile().getFullPathName());
+    propertiesFile->setValue("lastPosition", playerAudio.getPosition());
+    propertiesFile->setValue("volume", isMuted ? previousGain : volumeSlider.getValue());
+    propertiesFile->setValue("speed", speedslider.getValue());
+    propertiesFile->setValue("totalTime", totalTimeLabel.getText());
+    propertiesFile->setValue("mutedState", isMuted);
+    propertiesFile->setValue("currentPlayingIndex", currentPlayingIndex);
+
+    juce::StringArray playlistPaths;
+    for (auto &file : playlistFiles)
+    {
+        playlistPaths.add(file.getFullPathName());
+    }
+    propertiesFile->setValue("playlistFiles", playlistPaths.joinIntoString("\n"));
+    propertiesFile->setValue("trackTimes", trackTimes.joinIntoString("\n"));
+
+    if (playerAudio.isPositionSetA())
+        propertiesFile->setValue("abLoopPointA", playerAudio.getPointA());
+    else
+        propertiesFile->removeValue("abLoopPointA");
+
+    if (playerAudio.isPositionSetB())
+        propertiesFile->setValue("abLoopPointB", playerAudio.getPointB());
+    else
+        propertiesFile->removeValue("abLoopPointB");
+
+    propertiesFile->setValue("abLoopEnabled", playerAudio.isABLoopEnabled());
+    saveMarkers();
+    propertiesFile->saveIfNeeded();
 }
