@@ -1076,7 +1076,7 @@ void PlayerGUI::resized()
     int buttonHeight = 35;
     int spacing = 15;
 
-    int numButtons = 10;
+    int numButtons =8;
     int totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
     int startX = (getWidth() - totalWidth) / 2;
 
@@ -1088,9 +1088,8 @@ void PlayerGUI::resized()
     forwardButton.setBounds(startX + (buttonWidth + spacing) * 5, y, buttonWidth, buttonHeight);
     LoopButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
     restartButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
-    loadLast.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
-    unLoadTrack.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
-
+    
+   
     int positionY = 195;
     currentTimeLabel.setBounds(20, positionY, 65, 22);
     totalTimeLabel.setBounds(getWidth() - 85, positionY, 65, 22);
@@ -1107,6 +1106,9 @@ void PlayerGUI::resized()
     speedLabel.setBounds(20, waveformY + waveformHeight + 50, 85, 26);
     speedslider.setBounds(110, waveformY + waveformHeight + 50, getWidth() - 135, 26);
 
+
+
+
     // Advanced Audio Processing - Effects Controls (below speed slider)
     int effectsY = waveformY + waveformHeight + 85;
     int effectsButtonWidth = 45;
@@ -1120,6 +1122,11 @@ void PlayerGUI::resized()
     // Delay
     delayButton.setBounds(20 + effectsButtonWidth + effectsSliderWidth + 15, effectsY, effectsButtonWidth, effectsButtonHeight);
     delaySlider.setBounds(20 + effectsButtonWidth * 2 + effectsSliderWidth + 20, effectsY, effectsSliderWidth, effectsButtonHeight);
+
+    unLoadTrack.setBounds(25  + (effectsButtonWidth*2) + (effectsSliderWidth*2) +30, effectsY-5, buttonWidth, buttonHeight);
+    loadLast.setBounds(25 + (effectsButtonWidth * 2) + (effectsSliderWidth * 2) + 45 + buttonWidth , effectsY-5, buttonWidth, buttonHeight);
+
+
 
     int abLoopY = effectsY + effectsButtonHeight + 15;
     int abLoopButtonWidth = 100;
