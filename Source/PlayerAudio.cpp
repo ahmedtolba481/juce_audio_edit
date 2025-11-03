@@ -15,10 +15,8 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
     resampler.prepareToPlay(samplesPerBlockExpected, sampleRate);
-    
     // Initialize effects
     currentSampleRate = sampleRate;
-    
     // Prepare DSP effects
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
