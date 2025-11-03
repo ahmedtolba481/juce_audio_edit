@@ -19,15 +19,25 @@ public:
     void mouseDrag(const juce::MouseEvent &event) override;
     void mouseDoubleClick(const juce::MouseEvent &event) override;
     void setBackgroundColour(juce::Colour colour);
+    void setOtherPlayer1(PlayerGUI *other) { otherPlayer1 = other; }
+    void setOtherPlayer2(PlayerGUI *other) { otherPlayer2 = other; }
 
 private:
     juce::Rectangle<int> getDeleteButtonBounds() const;
+    juce::Rectangle<int> getAddToMixer1ButtonBounds() const;
+    juce::Rectangle<int> getAddToMixer2ButtonBounds() const;
     bool isClickOnDeleteButton(const juce::MouseEvent &event);
+    bool isClickOnAddToMixer1Button(const juce::MouseEvent &event);
+    bool isClickOnAddToMixer2Button(const juce::MouseEvent &event);
     PlayerGUI *owner;
+    PlayerGUI *otherPlayer1 = nullptr;
+    PlayerGUI *otherPlayer2 = nullptr;
     int currentRow = -1;
     juce::Label filenameLabel;
     juce::Label durationLabel;
     juce::TextButton deleteButton;
+    juce::TextButton addToMixer1Button;
+    juce::TextButton addToMixer2Button;
     juce::Colour backgroundColour = juce::Colour(0xFF2C3E50);
 };
 
@@ -125,6 +135,24 @@ public:
     int getPlaylistSize() const;
     void reorderPlaylistItems(int sourceIndex, int destinationIndex);
 
+    // Methods for transferring tracks between players
+    juce::File getFileAtIndex(int index) const;
+    void addFileToPlaylist(const juce::File &file);
+    void setOtherPlayer1(PlayerGUI *other);
+    void setOtherPlayer2(PlayerGUI *other);
+
+    // Shared playlist support
+    void setSharedPlaylistSource(PlayerGUI *source);
+    void loadAndPlayFile(const juce::File &file);
+    juce::Array<juce::File> *getPlaylistFiles() { return &playlistFiles; }
+    juce::StringArray *getTrackTimes() { return &trackTimes; }
+
+    // Method to stop and clear player (for use when clearing playlist)
+    void stopAndClearPlayer();
+
+    // Method to get currently loaded file
+    juce::File getCurrentLoadedFile() const { return playerAudio.getLastLoadedFile(); }
+
     // DragAndDropTarget methods
     bool isInterestedInDragSource(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override;
     void itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails) override;
@@ -162,6 +190,13 @@ private:
     // Marker data
     std::vector<TrackMarker> markers;
     int markerCounter = 0;
+
+    // References to other players for playlist sharing
+    PlayerGUI *otherPlayer1 = nullptr;
+    PlayerGUI *otherPlayer2 = nullptr;
+
+    // Shared playlist source (if set, use this player's playlist instead of own)
+    PlayerGUI *sharedPlaylistSource = nullptr;
 
     // GUI elements
     juce::ListBox playlistBox;

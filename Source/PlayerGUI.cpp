@@ -20,10 +20,32 @@ PlaylistRowComponent::PlaylistRowComponent(PlayerGUI *parent) : owner(parent)
     deleteButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     deleteButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     deleteButton.setColour(juce::ComboBox::outlineColourId, juce::Colour(0xFFFFFFFF).withAlpha(0.2f));
-    deleteButton.getProperties().set("fontSize", 14.0f);
+    deleteButton.getProperties().set("fontSize", 12.0f);
     deleteButton.setConnectedEdges(0);
     deleteButton.addListener(this);
     addAndMakeVisible(deleteButton);
+
+    addToMixer1Button.setButtonText("Mixer 1");
+    addToMixer1Button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4A90E2));
+    addToMixer1Button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF5A9EF0));
+    addToMixer1Button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addToMixer1Button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+    addToMixer1Button.setColour(juce::ComboBox::outlineColourId, juce::Colour(0xFFFFFFFF).withAlpha(0.2f));
+    addToMixer1Button.getProperties().set("fontSize", 12.0f);
+    addToMixer1Button.setConnectedEdges(0);
+    addToMixer1Button.addListener(this);
+    addAndMakeVisible(addToMixer1Button);
+
+    addToMixer2Button.setButtonText("Mixer 2");
+    addToMixer2Button.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
+    addToMixer2Button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5555));
+    addToMixer2Button.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addToMixer2Button.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+    addToMixer2Button.setColour(juce::ComboBox::outlineColourId, juce::Colour(0xFFFFFFFF).withAlpha(0.2f));
+    addToMixer2Button.getProperties().set("fontSize", 12.0f);
+    addToMixer2Button.setConnectedEdges(0);
+    addToMixer2Button.addListener(this);
+    addAndMakeVisible(addToMixer2Button);
 }
 
 void PlaylistRowComponent::updateRow(int rowIndex, const juce::String &filename, const juce::String &duration, bool isSelected)
@@ -49,9 +71,17 @@ void PlaylistRowComponent::updateRow(int rowIndex, const juce::String &filename,
 void PlaylistRowComponent::resized()
 {
     auto bounds = getLocalBounds();
-    filenameLabel.setBounds(10, 0, bounds.getWidth() - 150, bounds.getHeight());
-    durationLabel.setBounds(bounds.getWidth() - 140, 0, 70, bounds.getHeight());
-    deleteButton.setBounds(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
+    int buttonWidth = 65;
+    int spacing = 5;
+    int totalButtonsWidth = buttonWidth * 3 + spacing * 2;
+
+    filenameLabel.setBounds(10, 0, bounds.getWidth() - totalButtonsWidth - 80, bounds.getHeight());
+    durationLabel.setBounds(bounds.getWidth() - totalButtonsWidth - 70, 0, 60, bounds.getHeight());
+
+    int startX = bounds.getWidth() - totalButtonsWidth;
+    addToMixer1Button.setBounds(startX, 2, buttonWidth, bounds.getHeight() - 4);
+    addToMixer2Button.setBounds(startX + buttonWidth + spacing, 2, buttonWidth, bounds.getHeight() - 4);
+    deleteButton.setBounds(startX + (buttonWidth + spacing) * 2, 2, buttonWidth, bounds.getHeight() - 4);
 }
 
 void PlaylistRowComponent::paint(juce::Graphics &g)
@@ -80,6 +110,24 @@ void PlaylistRowComponent::buttonClicked(juce::Button *button)
     {
         owner->deleteTrack(currentRow);
     }
+    else if (button == &addToMixer1Button && owner != nullptr && otherPlayer1 != nullptr)
+    {
+        juce::File file = owner->getFileAtIndex(currentRow);
+        if (file.existsAsFile())
+        {
+            // Load and play the file on mixer 1 (player1)
+            otherPlayer1->loadAndPlayFile(file);
+        }
+    }
+    else if (button == &addToMixer2Button && owner != nullptr && otherPlayer2 != nullptr)
+    {
+        juce::File file = owner->getFileAtIndex(currentRow);
+        if (file.existsAsFile())
+        {
+            // Load and play the file on mixer 2 (player2)
+            otherPlayer2->loadAndPlayFile(file);
+        }
+    }
 }
 
 void PlaylistRowComponent::setBackgroundColour(juce::Colour colour)
@@ -91,7 +139,31 @@ void PlaylistRowComponent::setBackgroundColour(juce::Colour colour)
 juce::Rectangle<int> PlaylistRowComponent::getDeleteButtonBounds() const
 {
     auto bounds = getLocalBounds();
-    return juce::Rectangle<int>(bounds.getWidth() - 65, 2, 60, bounds.getHeight() - 4);
+    int buttonWidth = 65;
+    int spacing = 5;
+    int totalButtonsWidth = buttonWidth * 3 + spacing * 2;
+    int startX = bounds.getWidth() - totalButtonsWidth;
+    return juce::Rectangle<int>(startX + (buttonWidth + spacing) * 2, 2, buttonWidth, bounds.getHeight() - 4);
+}
+
+juce::Rectangle<int> PlaylistRowComponent::getAddToMixer1ButtonBounds() const
+{
+    auto bounds = getLocalBounds();
+    int buttonWidth = 65;
+    int spacing = 5;
+    int totalButtonsWidth = buttonWidth * 3 + spacing * 2;
+    int startX = bounds.getWidth() - totalButtonsWidth;
+    return juce::Rectangle<int>(startX, 2, buttonWidth, bounds.getHeight() - 4);
+}
+
+juce::Rectangle<int> PlaylistRowComponent::getAddToMixer2ButtonBounds() const
+{
+    auto bounds = getLocalBounds();
+    int buttonWidth = 65;
+    int spacing = 5;
+    int totalButtonsWidth = buttonWidth * 3 + spacing * 2;
+    int startX = bounds.getWidth() - totalButtonsWidth;
+    return juce::Rectangle<int>(startX + buttonWidth + spacing, 2, buttonWidth, bounds.getHeight() - 4);
 }
 
 bool PlaylistRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event)
@@ -100,9 +172,21 @@ bool PlaylistRowComponent::isClickOnDeleteButton(const juce::MouseEvent &event)
     return getDeleteButtonBounds().contains(localPos);
 }
 
+bool PlaylistRowComponent::isClickOnAddToMixer1Button(const juce::MouseEvent &event)
+{
+    auto localPos = event.getEventRelativeTo(this).position.toInt();
+    return getAddToMixer1ButtonBounds().contains(localPos);
+}
+
+bool PlaylistRowComponent::isClickOnAddToMixer2Button(const juce::MouseEvent &event)
+{
+    auto localPos = event.getEventRelativeTo(this).position.toInt();
+    return getAddToMixer2ButtonBounds().contains(localPos);
+}
+
 void PlaylistRowComponent::mouseDown(const juce::MouseEvent &event)
 {
-    if (isClickOnDeleteButton(event))
+    if (isClickOnDeleteButton(event) || isClickOnAddToMixer1Button(event) || isClickOnAddToMixer2Button(event))
         return;
 
     Component::mouseDown(event);
@@ -110,7 +194,7 @@ void PlaylistRowComponent::mouseDown(const juce::MouseEvent &event)
 
 void PlaylistRowComponent::mouseDoubleClick(const juce::MouseEvent &event)
 {
-    if (isClickOnDeleteButton(event))
+    if (isClickOnDeleteButton(event) || isClickOnAddToMixer1Button(event) || isClickOnAddToMixer2Button(event))
         return;
 
     if (owner != nullptr && currentRow >= 0 && currentRow < owner->getPlaylistSize())
@@ -121,7 +205,7 @@ void PlaylistRowComponent::mouseDoubleClick(const juce::MouseEvent &event)
 
 void PlaylistRowComponent::mouseDrag(const juce::MouseEvent &event)
 {
-    if (isClickOnDeleteButton(event))
+    if (isClickOnDeleteButton(event) || isClickOnAddToMixer1Button(event) || isClickOnAddToMixer2Button(event))
         return;
 
     if (currentRow >= 0 && event.mouseWasDraggedSinceMouseDown())
@@ -453,18 +537,23 @@ void PlayerGUI::releaseResources()
 
 void PlayerGUI::paint(juce::Graphics &g)
 {
+    // Check if this is player2 (has shared playlist source)
+    bool isPlayer2 = (sharedPlaylistSource != nullptr);
+
     // Modern dark background with subtle gradient
+    // Player2 uses brighter colors
     juce::ColourGradient backgroundGradient(
-        juce::Colour(0xFF1A1F2E), 0, 0,
-        juce::Colour(0xFF252A3A), 0, (float)getHeight(), false);
+        isPlayer2 ? juce::Colour(0xFF2A2F3E) : juce::Colour(0xFF1A1F2E), 0, 0,
+        isPlayer2 ? juce::Colour(0xFF353A4A) : juce::Colour(0xFF252A3A), 0, (float)getHeight(), false);
     g.setGradientFill(backgroundGradient);
     g.fillAll();
 
     // Header section with elegant gradient
+    // Player2 uses brighter header colors
     juce::Rectangle<int> headerArea(0, 0, getWidth(), 120);
     juce::ColourGradient headerGradient(
-        juce::Colour(0xFF2A2F40), 0, 0,
-        juce::Colour(0xFF1E2332), 0, 120.0f, false);
+        isPlayer2 ? juce::Colour(0xFF3A3F50) : juce::Colour(0xFF2A2F40), 0, 0,
+        isPlayer2 ? juce::Colour(0xFF2E3342) : juce::Colour(0xFF1E2332), 0, 120.0f, false);
     g.setGradientFill(headerGradient);
     g.fillRoundedRectangle(headerArea.toFloat(), 0.0f);
 
@@ -976,19 +1065,73 @@ void PlayerGUI::resized()
     abLoopInfoLabel.setBounds(20, abLoopY + abLoopButtonHeight + 8, getWidth() - 40, 26);
 
     int markerY = abLoopY + abLoopButtonHeight + 42;
-    markersLabel.setBounds(20, markerY, 150, 25);
-    addMarkerButton.setBounds(180, markerY, 100, 25);
-    clearMarkersButton.setBounds(290, markerY, 130, 25);
-    playlistLabel.setBounds(625, markerY, 75, 25);
-    addFilesButton.setBounds(700, markerY, 100, 25);
-    clearPlaylistButton.setBounds(810, markerY, 100, 25);
-    playlistLoopButton.setBounds(885, markerY - 5, 120, 35);
 
-    int remainingHeight = getHeight() - (markerY + 35);
-    int playlistandMarkerListHeight = static_cast<int>(remainingHeight * 0.6);
+    // Check if this player should show the playlist (only player1, not player2 with shared playlist)
+    bool showPlaylist = (sharedPlaylistSource == nullptr);
 
-    playlistBox.setBounds(625, markerY + 35, 550, playlistandMarkerListHeight);
-    markersListBox.setBounds(25, markerY + 35, 550, playlistandMarkerListHeight);
+    if (showPlaylist)
+    {
+        // Player1 layout: Playlist on left, Markers on right
+        // Calculate spacing dynamically based on available width
+        int totalWidth = getWidth();
+        int playlistWidth = static_cast<int>(totalWidth * 0.55); // 55% for playlist
+        int markersWidth = totalWidth - playlistWidth - 40;      // Remaining space minus margins
+        int markersX = playlistWidth + 30;                       // Start after playlist with spacing
+
+        // Ensure markers controls fit within available space
+        int markersControlsWidth = markersWidth - 10; // Leave some margin
+
+        // Playlist controls
+        playlistLabel.setBounds(20, markerY, 75, 25);
+        addFilesButton.setBounds(105, markerY, 90, 25);
+        clearPlaylistButton.setBounds(200, markerY, 100, 25);
+        playlistLoopButton.setBounds(305, markerY - 5, 120, 35);
+
+        // Markers controls - positioned above markers box, ensure they fit
+        int markerButtonWidth = juce::jmin(85, (markersControlsWidth - 130) / 2); // Distribute space evenly
+        markersLabel.setBounds(markersX, markerY, 110, 25);
+        addMarkerButton.setBounds(markersX + 115, markerY, markerButtonWidth, 25);
+        clearMarkersButton.setBounds(markersX + 115 + markerButtonWidth + 5, markerY, markersControlsWidth - 115 - markerButtonWidth - 5, 25);
+
+        // Show playlist elements
+        playlistLabel.setVisible(true);
+        addFilesButton.setVisible(true);
+        clearPlaylistButton.setVisible(true);
+        playlistLoopButton.setVisible(true);
+        playlistBox.setVisible(true);
+
+        int remainingHeight = getHeight() - (markerY + 35);
+        int playlistandMarkerListHeight = static_cast<int>(remainingHeight * 0.6);
+
+        // Position boxes with proper spacing
+        playlistBox.setBounds(25, markerY + 35, playlistWidth - 30, playlistandMarkerListHeight);
+        markersListBox.setBounds(markersX, markerY + 35, markersWidth, playlistandMarkerListHeight);
+    }
+    else
+    {
+        // Player2 layout: Only markers, centered and expanded
+        // Space out label and buttons properly to avoid conflicts
+        int spacing = 10;
+        int labelWidth = 120;
+        int buttonWidth = 100;
+
+        markersLabel.setBounds(20, markerY, labelWidth, 25);
+        addMarkerButton.setBounds(20 + labelWidth + spacing, markerY, buttonWidth, 25);
+        clearMarkersButton.setBounds(20 + labelWidth + spacing + buttonWidth + spacing, markerY, 130, 25);
+
+        // Hide playlist elements
+        playlistLabel.setVisible(false);
+        addFilesButton.setVisible(false);
+        clearPlaylistButton.setVisible(false);
+        playlistLoopButton.setVisible(false);
+        playlistBox.setVisible(false);
+
+        int remainingHeight = getHeight() - (markerY + 35);
+        int markerListHeight = static_cast<int>(remainingHeight * 0.6);
+
+        // Expand markers list to fill available space
+        markersListBox.setBounds(20, markerY + 35, getWidth() - 40, markerListHeight);
+    }
 }
 
 PlayerGUI::~PlayerGUI()
@@ -1045,8 +1188,9 @@ void PlayerGUI::buttonClicked(juce::Button *button)
     {
         currentPlayingIndex = findCurrentFileIndexInPlaylist();
         double currentPos = playerAudio.getPosition();
+        juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
 
-        if (currentPos <= 0.02 && currentPlayingIndex > 0 && playlistFiles.size() > 1)
+        if (currentPos <= 0.02 && currentPlayingIndex > 0 && files->size() > 1)
         {
             playPreviousTrack();
         }
@@ -1069,23 +1213,42 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             [this](const juce::FileChooser &fc)
             {
                 auto files = fc.getResults();
+                juce::Array<juce::File> *playlistFiles = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &this->playlistFiles;
+                juce::StringArray *trackTimes = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &this->trackTimes;
+
                 for (auto &f : files)
                 {
-                    playlistFiles.addIfNotAlreadyThere(f);
+                    playlistFiles->addIfNotAlreadyThere(f);
                     double duration = calculateFileDuration(f);
-                    trackTimes.addIfNotAlreadyThere(formatTime(duration));
+                    trackTimes->addIfNotAlreadyThere(formatTime(duration));
                 }
 
                 playlistBox.updateContent();
                 playlistBox.repaint();
+
+                // Update the other player's playlist box if it's also using the shared playlist
+                if (sharedPlaylistSource != nullptr)
+                {
+                    if (otherPlayer1 != nullptr && otherPlayer1->sharedPlaylistSource == sharedPlaylistSource)
+                    {
+                        otherPlayer1->playlistBox.updateContent();
+                        otherPlayer1->playlistBox.repaint();
+                    }
+                    if (otherPlayer2 != nullptr && otherPlayer2->sharedPlaylistSource == sharedPlaylistSource)
+                    {
+                        otherPlayer2->playlistBox.updateContent();
+                        otherPlayer2->playlistBox.repaint();
+                    }
+                }
             });
     }
     else if (button == &BeginButton)
     {
         currentPlayingIndex = findCurrentFileIndexInPlaylist();
         double currentPos = playerAudio.getPosition();
+        juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
 
-        if (currentPos <= 0.02 && currentPlayingIndex > 0 && playlistFiles.size() > 1)
+        if (currentPos <= 0.02 && currentPlayingIndex > 0 && files->size() > 1)
         {
             playPreviousTrack();
         }
@@ -1116,8 +1279,11 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         auto savedPlaylist = propertiesFile->getValue("playlistFiles");
         if (!savedPlaylist.isEmpty())
         {
-            playlistFiles.clear();
-            trackTimes.clear();
+            juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+            juce::StringArray *times = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &trackTimes;
+
+            files->clear();
+            times->clear();
 
             juce::StringArray playlistPaths;
             playlistPaths.addTokens(savedPlaylist, "\n", "");
@@ -1129,35 +1295,53 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     juce::File file(path);
                     if (file.existsAsFile())
                     {
-                        playlistFiles.add(file);
+                        files->add(file);
                         double duration = calculateFileDuration(file);
-                        trackTimes.add(formatTime(duration));
+                        times->add(formatTime(duration));
                     }
                 }
             }
 
             playlistBox.updateContent();
             playlistBox.repaint();
+
+            // Update the other player's playlist box if it's also using the shared playlist
+            if (sharedPlaylistSource != nullptr)
+            {
+                if (otherPlayer1 != nullptr && otherPlayer1->sharedPlaylistSource == sharedPlaylistSource)
+                {
+                    otherPlayer1->playlistBox.updateContent();
+                    otherPlayer1->playlistBox.repaint();
+                }
+                if (otherPlayer2 != nullptr && otherPlayer2->sharedPlaylistSource == sharedPlaylistSource)
+                {
+                    otherPlayer2->playlistBox.updateContent();
+                    otherPlayer2->playlistBox.repaint();
+                }
+            }
         }
 
+        juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+        juce::StringArray *times = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &trackTimes;
+
         auto savedTrackTimes = propertiesFile->getValue("trackTimes");
-        if (!savedTrackTimes.isEmpty() && playlistFiles.size() > 0 && trackTimes.size() < playlistFiles.size())
+        if (!savedTrackTimes.isEmpty() && files->size() > 0 && times->size() < files->size())
         {
-            trackTimes.clear();
-            juce::StringArray times;
-            times.addTokens(savedTrackTimes, "\n", "");
-            for (auto &time : times)
+            times->clear();
+            juce::StringArray timeStrings;
+            timeStrings.addTokens(savedTrackTimes, "\n", "");
+            for (auto &time : timeStrings)
             {
                 if (time.isNotEmpty())
-                    trackTimes.add(time);
+                    times->add(time);
             }
 
-            while (trackTimes.size() < playlistFiles.size())
+            while (times->size() < files->size())
             {
-                int index = trackTimes.size();
-                juce::File file = playlistFiles[index];
+                int index = times->size();
+                juce::File file = (*files)[index];
                 double duration = calculateFileDuration(file);
-                trackTimes.add(formatTime(duration));
+                times->add(formatTime(duration));
             }
         }
 
@@ -1170,15 +1354,15 @@ void PlayerGUI::buttonClicked(juce::Button *button)
 
             if (lastFile.existsAsFile())
             {
-                if (savedIndex >= 0 && savedIndex < playlistFiles.size() && playlistFiles[savedIndex] == lastFile)
+                if (savedIndex >= 0 && savedIndex < files->size() && (*files)[savedIndex] == lastFile)
                 {
                     currentPlayingIndex = savedIndex;
                 }
                 else
                 {
-                    for (int i = 0; i < playlistFiles.size(); i++)
+                    for (int i = 0; i < files->size(); i++)
                     {
-                        if (playlistFiles[i] == lastFile)
+                        if ((*files)[i] == lastFile)
                         {
                             currentPlayingIndex = i;
                             break;
@@ -1399,12 +1583,43 @@ void PlayerGUI::buttonClicked(juce::Button *button)
     }
     else if (button == &clearPlaylistButton)
     {
-        playlistFiles.clear();
-        trackTimes.clear();
+        juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+        juce::StringArray *times = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &trackTimes;
+
+        files->clear();
+        times->clear();
         currentPlayingIndex = -1;
+
+        // Stop and clear track from this player
+        resetUIToEmptyState();
+
+        // Stop and clear tracks from both other players
+        if (otherPlayer1 != nullptr)
+        {
+            otherPlayer1->stopAndClearPlayer();
+        }
+        if (otherPlayer2 != nullptr)
+        {
+            otherPlayer2->stopAndClearPlayer();
+        }
+
         playlistBox.updateContent();
         playlistBox.repaint();
-        resetUIToEmptyState();
+
+        // Update the other player's playlist box if it's also using the shared playlist
+        if (sharedPlaylistSource != nullptr)
+        {
+            if (otherPlayer1 != nullptr && otherPlayer1->sharedPlaylistSource == sharedPlaylistSource)
+            {
+                otherPlayer1->playlistBox.updateContent();
+                otherPlayer1->playlistBox.repaint();
+            }
+            if (otherPlayer2 != nullptr && otherPlayer2->sharedPlaylistSource == sharedPlaylistSource)
+            {
+                otherPlayer2->playlistBox.updateContent();
+                otherPlayer2->playlistBox.repaint();
+            }
+        }
     }
     else if (button == &unLoadTrack)
     {
@@ -1576,6 +1791,10 @@ void PlayerGUI::updateMetadataDisplay()
 
 int PlayerGUI::getNumRows()
 {
+    if (sharedPlaylistSource != nullptr)
+    {
+        return sharedPlaylistSource->getPlaylistFiles()->size();
+    }
     return playlistFiles.size();
 }
 
@@ -1589,7 +1808,10 @@ void PlayerGUI::paintListBoxItem(int /*rowNumber*/, juce::Graphics & /*g*/,
 juce::Component *PlayerGUI::refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component *existingComponentToUpdate)
 {
     // Handle playlist only (markers are handled by MarkersListBoxModel)
-    if (rowNumber >= playlistFiles.size())
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+    juce::StringArray *times = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &trackTimes;
+
+    if (rowNumber >= files->size())
         return nullptr;
 
     PlaylistRowComponent *rowComponent = dynamic_cast<PlaylistRowComponent *>(existingComponentToUpdate);
@@ -1600,8 +1822,14 @@ juce::Component *PlayerGUI::refreshComponentForRow(int rowNumber, bool isRowSele
         rowComponent->setInterceptsMouseClicks(true, true);
     }
 
-    auto filename = playlistFiles[rowNumber].getFileNameWithoutExtension();
-    auto fileDuration = trackTimes[rowNumber];
+    // Set other players if available
+    if (otherPlayer1 != nullptr)
+        rowComponent->setOtherPlayer1(otherPlayer1);
+    if (otherPlayer2 != nullptr)
+        rowComponent->setOtherPlayer2(otherPlayer2);
+
+    auto filename = (*files)[rowNumber].getFileNameWithoutExtension();
+    auto fileDuration = (*times)[rowNumber];
     rowComponent->updateRow(rowNumber, filename, fileDuration, isRowSelected);
 
     return rowComponent;
@@ -1609,7 +1837,123 @@ juce::Component *PlayerGUI::refreshComponentForRow(int rowNumber, bool isRowSele
 
 int PlayerGUI::getPlaylistSize() const
 {
+    if (sharedPlaylistSource != nullptr)
+    {
+        return sharedPlaylistSource->getPlaylistFiles()->size();
+    }
     return playlistFiles.size();
+}
+
+juce::File PlayerGUI::getFileAtIndex(int index) const
+{
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : const_cast<juce::Array<juce::File> *>(&playlistFiles);
+    if (index >= 0 && index < files->size())
+    {
+        return (*files)[index];
+    }
+    return juce::File();
+}
+
+void PlayerGUI::addFileToPlaylist(const juce::File &file)
+{
+    if (file.existsAsFile())
+    {
+        // Add to shared playlist if available, otherwise to own playlist
+        juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+        juce::StringArray *times = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &trackTimes;
+
+        files->addIfNotAlreadyThere(file);
+        double duration = calculateFileDuration(file);
+        times->addIfNotAlreadyThere(formatTime(duration));
+
+        playlistBox.updateContent();
+        playlistBox.repaint();
+
+        // Update the other player's playlist box if it's also using the shared playlist
+        if (sharedPlaylistSource != nullptr && otherPlayer1 != nullptr && otherPlayer1->sharedPlaylistSource == sharedPlaylistSource)
+        {
+            otherPlayer1->playlistBox.updateContent();
+            otherPlayer1->playlistBox.repaint();
+        }
+        if (sharedPlaylistSource != nullptr && otherPlayer2 != nullptr && otherPlayer2->sharedPlaylistSource == sharedPlaylistSource)
+        {
+            otherPlayer2->playlistBox.updateContent();
+            otherPlayer2->playlistBox.repaint();
+        }
+    }
+}
+
+void PlayerGUI::setOtherPlayer1(PlayerGUI *other)
+{
+    otherPlayer1 = other;
+    // Update all playlist row components to have the new reference
+    playlistBox.updateContent();
+}
+
+void PlayerGUI::setOtherPlayer2(PlayerGUI *other)
+{
+    otherPlayer2 = other;
+    // Update all playlist row components to have the new reference
+    playlistBox.updateContent();
+}
+
+void PlayerGUI::setSharedPlaylistSource(PlayerGUI *source)
+{
+    sharedPlaylistSource = source;
+    // Update playlist display when shared source changes
+    playlistBox.updateContent();
+    playlistBox.repaint();
+
+    // Trigger layout update to show/hide playlist elements
+    resized();
+}
+
+void PlayerGUI::loadAndPlayFile(const juce::File &file)
+{
+    if (!file.existsAsFile())
+        return;
+
+    // Stop current playback
+    if (playerAudio.isPlaying())
+    {
+        playerAudio.stop();
+    }
+
+    // Load and play the file
+    if (playerAudio.loadFile(file))
+    {
+        playerAudio.start();
+        setPlayButtonState(true);
+
+        totalTimeLabel.setText(formatTime(playerAudio.getLengthInSeconds()), juce::dontSendNotification);
+        currentTimeLabel.setText("00:00", juce::dontSendNotification);
+        positionSlider.setValue(0.0, juce::dontSendNotification);
+
+        updateMetadataDisplay();
+        markersListBox.updateContent();
+        markersListBox.repaint();
+        waveformComponent.repaint();
+
+        // Update current playing index
+        juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+        for (int i = 0; i < files->size(); i++)
+        {
+            if ((*files)[i] == file)
+            {
+                currentPlayingIndex = i;
+                break;
+            }
+        }
+    }
+}
+
+void PlayerGUI::stopAndClearPlayer()
+{
+    playerAudio.stop();
+    playerAudio.unloadFile();
+    setPlayButtonState(false);
+    currentPlayingIndex = -1;
+    resetUIToEmptyState();
 }
 
 juce::var PlayerGUI::getDragSourceDescription(const juce::SparseSet<int> &selectedRows)
@@ -1629,8 +1973,9 @@ bool PlayerGUI::isInterestedInDragSource(const juce::DragAndDropTarget::SourceDe
 void PlayerGUI::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails)
 {
     int sourceIndex = dragSourceDetails.description.toString().getIntValue();
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
 
-    if (sourceIndex < 0 || sourceIndex >= playlistFiles.size())
+    if (sourceIndex < 0 || sourceIndex >= files->size())
         return;
 
     auto mousePos = getMouseXYRelative();
@@ -1649,8 +1994,9 @@ void PlayerGUI::itemDropped(const juce::DragAndDropTarget::SourceDetails &dragSo
 void PlayerGUI::rowsDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails, int insertIndex)
 {
     int sourceIndex = dragSourceDetails.description.toString().getIntValue();
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
 
-    if (sourceIndex < 0 || sourceIndex >= playlistFiles.size() || insertIndex < 0)
+    if (sourceIndex < 0 || sourceIndex >= files->size() || insertIndex < 0)
         return;
 
     int destinationIndex = insertIndex;
@@ -1665,8 +2011,8 @@ void PlayerGUI::rowsDropped(const juce::DragAndDropTarget::SourceDetails &dragSo
 
     if (destinationIndex < 0)
         destinationIndex = 0;
-    if (destinationIndex > playlistFiles.size())
-        destinationIndex = playlistFiles.size();
+    if (destinationIndex > files->size())
+        destinationIndex = files->size();
 
     isReorderingPlaylist = true;
 
@@ -1697,28 +2043,49 @@ void PlayerGUI::rowsDropped(const juce::DragAndDropTarget::SourceDetails &dragSo
 
 void PlayerGUI::reorderPlaylistItems(int sourceIndex, int destinationIndex)
 {
-    if (sourceIndex < 0 || sourceIndex >= playlistFiles.size() ||
-        destinationIndex < 0 || destinationIndex > playlistFiles.size())
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+    juce::StringArray *times = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &trackTimes;
+
+    if (sourceIndex < 0 || sourceIndex >= files->size() ||
+        destinationIndex < 0 || destinationIndex > files->size())
         return;
 
     if (sourceIndex == destinationIndex)
         return;
 
-    juce::File movedFile = playlistFiles[sourceIndex];
-    juce::String movedTime = trackTimes[sourceIndex];
+    juce::File movedFile = (*files)[sourceIndex];
+    juce::String movedTime = (*times)[sourceIndex];
 
-    playlistFiles.remove(sourceIndex);
-    trackTimes.remove(sourceIndex);
+    files->remove(sourceIndex);
+    times->remove(sourceIndex);
 
-    int adjustedDestination = juce::jlimit(0, playlistFiles.size(), destinationIndex);
+    int adjustedDestination = juce::jlimit(0, files->size(), destinationIndex);
 
-    playlistFiles.insert(adjustedDestination, movedFile);
-    trackTimes.insert(adjustedDestination, movedTime);
+    files->insert(adjustedDestination, movedFile);
+    times->insert(adjustedDestination, movedTime);
+
+    // Update both players' playlist boxes if using shared playlist
+    playlistBox.updateContent();
+    playlistBox.repaint();
+    if (sharedPlaylistSource != nullptr)
+    {
+        if (otherPlayer1 != nullptr && otherPlayer1->sharedPlaylistSource == sharedPlaylistSource)
+        {
+            otherPlayer1->playlistBox.updateContent();
+            otherPlayer1->playlistBox.repaint();
+        }
+        if (otherPlayer2 != nullptr && otherPlayer2->sharedPlaylistSource == sharedPlaylistSource)
+        {
+            otherPlayer2->playlistBox.updateContent();
+            otherPlayer2->playlistBox.repaint();
+        }
+    }
 }
 
 void PlayerGUI::selectPlaylistRow(int rowIndex)
 {
-    if (rowIndex >= 0 && rowIndex < playlistFiles.size())
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+    if (rowIndex >= 0 && rowIndex < files->size())
     {
         playlistBox.selectRow(rowIndex);
         selectedRowsChanged(rowIndex);
@@ -1732,9 +2099,11 @@ void PlayerGUI::selectedRowsChanged(int lastRowSelected)
         return;
     }
 
-    if (lastRowSelected >= 0 && lastRowSelected < playlistFiles.size())
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+
+    if (lastRowSelected >= 0 && lastRowSelected < files->size())
     {
-        auto file = playlistFiles[lastRowSelected];
+        auto file = (*files)[lastRowSelected];
 
         currentPlayingIndex = lastRowSelected;
 
@@ -1798,18 +2167,20 @@ void PlayerGUI::unloadMetaData()
 
 void PlayerGUI::playNextTrack()
 {
-    if (currentPlayingIndex < 0 || playlistFiles.size() == 0)
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+
+    if (currentPlayingIndex < 0 || files->size() == 0)
         return;
 
     int nextIndex = currentPlayingIndex + 1;
 
-    if (nextIndex < playlistFiles.size())
+    if (nextIndex < files->size())
     {
         selectPlaylistRow(nextIndex);
     }
     else
     {
-        if (isPlaylistLooping && playlistFiles.size() > 0)
+        if (isPlaylistLooping && files->size() > 0)
         {
             // Loop back to the beginning of the playlist
             selectPlaylistRow(0);
@@ -1825,7 +2196,9 @@ void PlayerGUI::playNextTrack()
 
 void PlayerGUI::playPreviousTrack()
 {
-    if (currentPlayingIndex <= 0 || playlistFiles.size() == 0)
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+
+    if (currentPlayingIndex <= 0 || files->size() == 0)
         return;
 
     int previousIndex = currentPlayingIndex - 1;
@@ -1838,15 +2211,52 @@ void PlayerGUI::playPreviousTrack()
 
 void PlayerGUI::deleteTrack(int index)
 {
-    if (index >= 0 && index < playlistFiles.size())
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : &playlistFiles;
+    juce::StringArray *times = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getTrackTimes() : &trackTimes;
+
+    if (index >= 0 && index < files->size())
     {
-        auto fileToDelete = playlistFiles[index];
+        auto fileToDelete = (*files)[index];
         bool wasCurrentlyPlaying = (currentPlayingIndex == index);
 
-        playlistFiles.remove(index);
-        trackTimes.remove(index);
+        files->remove(index);
+        times->remove(index);
+
+        // Update both players' playlist boxes if using shared playlist
         playlistBox.updateContent();
         playlistBox.repaint();
+        if (sharedPlaylistSource != nullptr)
+        {
+            if (otherPlayer1 != nullptr && otherPlayer1->sharedPlaylistSource == sharedPlaylistSource)
+            {
+                otherPlayer1->playlistBox.updateContent();
+                otherPlayer1->playlistBox.repaint();
+            }
+            if (otherPlayer2 != nullptr && otherPlayer2->sharedPlaylistSource == sharedPlaylistSource)
+            {
+                otherPlayer2->playlistBox.updateContent();
+                otherPlayer2->playlistBox.repaint();
+            }
+        }
+
+        // Check if the deleted file is currently playing in other players and unload it
+        if (otherPlayer1 != nullptr)
+        {
+            auto player1CurrentFile = otherPlayer1->getCurrentLoadedFile();
+            if (player1CurrentFile == fileToDelete)
+            {
+                otherPlayer1->stopAndClearPlayer();
+            }
+        }
+
+        if (otherPlayer2 != nullptr)
+        {
+            auto player2CurrentFile = otherPlayer2->getCurrentLoadedFile();
+            if (player2CurrentFile == fileToDelete)
+            {
+                otherPlayer2->stopAndClearPlayer();
+            }
+        }
 
         if (wasCurrentlyPlaying)
         {
@@ -1859,9 +2269,9 @@ void PlayerGUI::deleteTrack(int index)
             playerAudio.stop();
             playerAudio.unloadFile();
 
-            if (playlistFiles.size() > 0)
+            if (files->size() > 0)
             {
-                if (index < playlistFiles.size())
+                if (index < files->size())
                 {
                     currentPlayingIndex = index;
                 }
@@ -2044,18 +2454,20 @@ void PlayerGUI::loadMarkers()
 int PlayerGUI::findCurrentFileIndexInPlaylist() const
 {
     auto currentFile = playerAudio.getLastLoadedFile();
-    if (!currentFile.existsAsFile() || playlistFiles.isEmpty())
+    juce::Array<juce::File> *files = sharedPlaylistSource != nullptr ? sharedPlaylistSource->getPlaylistFiles() : const_cast<juce::Array<juce::File> *>(&playlistFiles);
+
+    if (!currentFile.existsAsFile() || files->isEmpty())
         return -1;
 
-    if (currentPlayingIndex >= 0 && currentPlayingIndex < playlistFiles.size())
+    if (currentPlayingIndex >= 0 && currentPlayingIndex < files->size())
     {
-        if (playlistFiles[currentPlayingIndex] == currentFile)
+        if ((*files)[currentPlayingIndex] == currentFile)
             return currentPlayingIndex;
     }
 
-    for (int i = 0; i < playlistFiles.size(); i++)
+    for (int i = 0; i < files->size(); i++)
     {
-        if (playlistFiles[i] == currentFile)
+        if ((*files)[i] == currentFile)
             return i;
     }
 
