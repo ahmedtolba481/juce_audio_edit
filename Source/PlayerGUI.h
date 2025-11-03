@@ -113,7 +113,7 @@ class PlayerGUI : public juce::Component,
                   public PlayerAudio::WaveformListener
 {
 public:
-    PlayerGUI();
+    PlayerGUI(const juce::String& playerName = "Player1");
     ~PlayerGUI() override;
     void resized() override;
     void paint(juce::Graphics &g) override;

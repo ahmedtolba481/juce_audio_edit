@@ -1,6 +1,6 @@
 ﻿#include "MainComponent.h"
 
-MainComponent::MainComponent()
+MainComponent::MainComponent() : player1("Player1"), player2("Player2")
 {
 	addAndMakeVisible(player1);
 	addAndMakeVisible(player2);

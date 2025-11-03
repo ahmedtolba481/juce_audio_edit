@@ -696,11 +696,11 @@ void PlayerGUI::drawTrackMarkers(juce::Graphics &g)
     }
 }
 
-PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAudio)
+PlayerGUI::PlayerGUI(const juce::String &playerName) : markersListBoxModel(this), waveformComponent(&playerAudio)
 {
     juce::PropertiesFile::Options options;
     options.applicationName = "JUCE-AudioPlayer";
-    options.filenameSuffix = "settings";
+    options.filenameSuffix = playerName + "_settings"; // Unique filename for each player
     options.osxLibrarySubFolder = "Application Support";
     options.commonToAllUsers = false;
 
