@@ -3,25 +3,25 @@
 // PlaylistRowComponent implementation
 PlaylistRowComponent::PlaylistRowComponent(PlayerGUI *parent) : owner(parent)
 {
-    filenameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    filenameLabel.setFont(juce::FontOptions(13.0f, juce::Font::plain));
+    filenameLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
+    filenameLabel.setFont(juce::FontOptions(14.0f, juce::Font::plain));
     filenameLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(filenameLabel);
 
-    durationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    durationLabel.setFont(juce::FontOptions(13.0f, juce::Font::plain));
+    durationLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFB0B8C4));
+    durationLabel.setFont(juce::FontOptions(12.0f, juce::Font::plain));
     durationLabel.setJustificationType(juce::Justification::centred);
     durationLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(durationLabel);
 
-    deleteButton.setButtonText("Delete");
+    deleteButton.setButtonText("✕");
     deleteButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
-    deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFC0392B));
+    deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5555));
     deleteButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     deleteButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
-    deleteButton.setColour(juce::ComboBox::outlineColourId, juce::Colour(0xFFFFFFFF).withAlpha(0.3f));
-    deleteButton.setConnectedEdges(juce::TextButton::ConnectedOnLeft | juce::TextButton::ConnectedOnRight);
-    deleteButton.getProperties().set("fontSize", 11.0f);
+    deleteButton.setColour(juce::ComboBox::outlineColourId, juce::Colour(0xFFFFFFFF).withAlpha(0.2f));
+    deleteButton.getProperties().set("fontSize", 14.0f);
+    deleteButton.setConnectedEdges(0);
     deleteButton.addListener(this);
     addAndMakeVisible(deleteButton);
 }
@@ -33,9 +33,17 @@ void PlaylistRowComponent::updateRow(int rowIndex, const juce::String &filename,
     durationLabel.setText(duration, juce::dontSendNotification);
 
     if (isSelected)
-        setBackgroundColour(juce::Colour(0xFF3498DB));
+    {
+        setBackgroundColour(juce::Colour(0xFF4A90E2));
+        filenameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        durationLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE0E8FF));
+    }
     else
-        setBackgroundColour(rowIndex % 2 == 0 ? juce::Colour(0xFF2C3E50) : juce::Colour(0xFF34495E));
+    {
+        setBackgroundColour(rowIndex % 2 == 0 ? juce::Colour(0xFF2A2F3E) : juce::Colour(0xFF252A3A));
+        filenameLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
+        durationLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFB0B8C4));
+    }
 }
 
 void PlaylistRowComponent::resized()
@@ -48,7 +56,22 @@ void PlaylistRowComponent::resized()
 
 void PlaylistRowComponent::paint(juce::Graphics &g)
 {
-    g.fillAll(backgroundColour);
+    auto bounds = getLocalBounds().toFloat();
+
+    // Fill background with rounded corners
+    g.setColour(backgroundColour);
+    g.fillRoundedRectangle(bounds, 3.0f);
+
+    // Subtle border
+    g.setColour(juce::Colour(0x20FFFFFF));
+    g.drawRoundedRectangle(bounds.reduced(0.5f), 3.0f, 0.5f);
+
+    // Hover effect
+    if (isMouseOver())
+    {
+        g.setColour(juce::Colours::white.withAlpha(0.08f));
+        g.fillRoundedRectangle(bounds, 3.0f);
+    }
 }
 
 void PlaylistRowComponent::buttonClicked(juce::Button *button)
@@ -113,21 +136,22 @@ void PlaylistRowComponent::mouseDrag(const juce::MouseEvent &event)
 // MarkerRowComponent implementation
 MarkerRowComponent::MarkerRowComponent(PlayerGUI *parent) : owner(parent)
 {
-    markerLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    markerLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
     markerLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
     markerLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(markerLabel);
 
-    timeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF3498DB));
+    timeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF9B59B6));
     timeLabel.setFont(juce::FontOptions(12.0f, juce::Font::plain));
     timeLabel.setJustificationType(juce::Justification::centredRight);
     timeLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(timeLabel);
 
-    deleteButton.setButtonText("X");
+    deleteButton.setButtonText("✕");
     deleteButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
-    deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFC0392B));
+    deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5555));
     deleteButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    deleteButton.getProperties().set("fontSize", 14.0f);
     deleteButton.addListener(this);
     addAndMakeVisible(deleteButton);
 }
@@ -137,7 +161,7 @@ void MarkerRowComponent::updateRow(int rowIndex, const juce::String &label, cons
     currentRow = rowIndex;
     markerLabel.setText(label, juce::dontSendNotification);
     timeLabel.setText(time, juce::dontSendNotification);
-    backgroundColour = rowIndex % 2 == 0 ? juce::Colour(0xFF34495E) : juce::Colour(0xFF2C3E50);
+    backgroundColour = rowIndex % 2 == 0 ? juce::Colour(0xFF2F3445) : juce::Colour(0xFF282D3E);
 }
 
 void MarkerRowComponent::resized()
@@ -150,12 +174,21 @@ void MarkerRowComponent::resized()
 
 void MarkerRowComponent::paint(juce::Graphics &g)
 {
-    g.fillAll(backgroundColour);
+    auto bounds = getLocalBounds().toFloat();
 
+    // Fill background with rounded corners
+    g.setColour(backgroundColour);
+    g.fillRoundedRectangle(bounds, 3.0f);
+
+    // Subtle border
+    g.setColour(juce::Colour(0x20FFFFFF));
+    g.drawRoundedRectangle(bounds.reduced(0.5f), 3.0f, 0.5f);
+
+    // Hover effect
     if (isMouseOver())
     {
-        g.setColour(juce::Colours::white.withAlpha(0.1f));
-        g.fillAll();
+        g.setColour(juce::Colour(0xFF9B59B6).withAlpha(0.15f));
+        g.fillRoundedRectangle(bounds, 3.0f);
     }
 }
 
@@ -257,9 +290,16 @@ void WaveformComponent::paint(juce::Graphics &g)
 {
     auto bounds = getLocalBounds();
 
-    // Fill background
-    g.setColour(juce::Colour(0xFF2C3E50).withAlpha(0.3f));
-    g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
+    // Modern background with gradient
+    juce::ColourGradient bgGradient(
+        juce::Colour(0xFF1E2332), 0, 0,
+        juce::Colour(0xFF252A3A), 0, (float)bounds.getHeight(), false);
+    g.setGradientFill(bgGradient);
+    g.fillRoundedRectangle(bounds.toFloat(), 6.0f);
+
+    // Subtle border
+    g.setColour(juce::Colour(0x40FFFFFF));
+    g.drawRoundedRectangle(bounds.toFloat().reduced(0.5f), 6.0f, 1.0f);
 
     // Draw waveform
     if (playerAudio == nullptr)
@@ -269,9 +309,9 @@ void WaveformComponent::paint(juce::Graphics &g)
     if (waveformData.empty())
     {
         // Draw placeholder text
-        g.setColour(juce::Colours::white.withAlpha(0.5f));
-        g.setFont(juce::FontOptions(14.0f));
-        g.drawText("No waveform data", bounds, juce::Justification::centred);
+        g.setColour(juce::Colour(0xFF8A8F9E));
+        g.setFont(juce::FontOptions(14.0f, juce::Font::italic));
+        g.drawText("No waveform data available", bounds, juce::Justification::centred);
         return;
     }
 
@@ -322,13 +362,16 @@ void WaveformComponent::paint(juce::Graphics &g)
 
     waveformPath.closeSubPath();
 
-    // Fill waveform
-    g.setColour(juce::Colour(0xFF3498DB).withAlpha(0.7f));
+    // Modern waveform fill with gradient
+    juce::ColourGradient waveformGradient(
+        juce::Colour(0xFF5A9EF0), 0, centerY - 10,
+        juce::Colour(0xFF4A90E2), 0, centerY + 10, false);
+    g.setGradientFill(waveformGradient);
     g.fillPath(waveformPath);
 
-    // Draw outline
-    g.setColour(juce::Colour(0xFF2980B9));
-    g.strokePath(waveformPath, juce::PathStrokeType(1.0f));
+    // Subtle waveform outline
+    g.setColour(juce::Colour(0xFF6A9EF0).withAlpha(0.6f));
+    g.strokePath(waveformPath, juce::PathStrokeType(1.5f));
 
     // Draw playback position indicator
     if (playerAudio != nullptr && playerAudio->getLengthInSeconds() > 0.0)
@@ -343,14 +386,25 @@ void WaveformComponent::paint(juce::Graphics &g)
             int playheadX = static_cast<int>(normalizedPos * width);
             playheadX = juce::jlimit(0, width - 1, playheadX);
 
-            // Draw playhead line
+            // Draw playhead line with shadow
+            g.setColour(juce::Colour(0x40000000));
+            g.drawLine(static_cast<float>(playheadX + 1), 0.0f,
+                       static_cast<float>(playheadX + 1), static_cast<float>(height), 2.5f);
+
             g.setColour(juce::Colours::white);
             g.drawLine(static_cast<float>(playheadX), 0.0f,
                        static_cast<float>(playheadX), static_cast<float>(height), 2.0f);
 
-            // Draw playhead indicator circle
-            g.fillEllipse(static_cast<float>(playheadX - 5), static_cast<float>(height / 2 - 5),
-                          10.0f, 10.0f);
+            // Draw playhead indicator circle with glow
+            g.setColour(juce::Colour(0x404A90E2));
+            g.fillEllipse(static_cast<float>(playheadX - 7), static_cast<float>(height / 2 - 7),
+                          14.0f, 14.0f);
+            g.setColour(juce::Colour(0xFF4A90E2));
+            g.fillEllipse(static_cast<float>(playheadX - 6), static_cast<float>(height / 2 - 6),
+                          12.0f, 12.0f);
+            g.setColour(juce::Colours::white);
+            g.fillEllipse(static_cast<float>(playheadX - 4), static_cast<float>(height / 2 - 4),
+                          8.0f, 8.0f);
         }
     }
 
@@ -367,12 +421,12 @@ void WaveformComponent::paint(juce::Graphics &g)
             int xB = static_cast<int>((pointB / totalLength) * width);
 
             // Draw point A marker
-            g.setColour(juce::Colour(0xFF3498DB));
-            g.fillRect(xA - 2, 0, 4, height);
+            g.setColour(juce::Colour(0xFF4A90E2));
+            g.fillRect(xA - 3, 0, 6, height);
 
             // Draw point B marker
             g.setColour(juce::Colour(0xFFE74C3C));
-            g.fillRect(xB - 2, 0, 4, height);
+            g.fillRect(xB - 3, 0, 6, height);
         }
     }
 }
@@ -399,17 +453,32 @@ void PlayerGUI::releaseResources()
 
 void PlayerGUI::paint(juce::Graphics &g)
 {
-    g.fillAll(juce::Colours::lightgrey);
+    // Modern dark background with subtle gradient
+    juce::ColourGradient backgroundGradient(
+        juce::Colour(0xFF1A1F2E), 0, 0,
+        juce::Colour(0xFF252A3A), 0, (float)getHeight(), false);
+    g.setGradientFill(backgroundGradient);
+    g.fillAll();
 
-    juce::Rectangle<int> headerArea(0, 0, getWidth(), 110);
-    juce::ColourGradient gradient(
-        juce::Colour(0xFF2C3E50), 0, 0,
-        juce::Colour(0xFF34495E), 0, 110.0f, false);
-    g.setGradientFill(gradient);
-    g.fillRect(headerArea);
+    // Header section with elegant gradient
+    juce::Rectangle<int> headerArea(0, 0, getWidth(), 120);
+    juce::ColourGradient headerGradient(
+        juce::Colour(0xFF2A2F40), 0, 0,
+        juce::Colour(0xFF1E2332), 0, 120.0f, false);
+    g.setGradientFill(headerGradient);
+    g.fillRoundedRectangle(headerArea.toFloat(), 0.0f);
 
-    g.setColour(juce::Colour(0xFF1A252F));
-    g.drawLine(0, 110, (float)getWidth(), 110, 2.0f);
+    // Subtle shadow effect for header
+    g.setColour(juce::Colour(0x40000000));
+    g.fillRoundedRectangle(headerArea.toFloat().withTrimmedBottom(1.0f), 0.0f);
+
+    // Elegant divider line
+    g.setColour(juce::Colour(0xFF3A3F50).withAlpha(0.6f));
+    g.drawLine(0, 120.5f, (float)getWidth(), 120.5f, 1.0f);
+
+    // Subtle highlight above divider
+    g.setColour(juce::Colour(0x50FFFFFF));
+    g.drawLine(0, 119.5f, (float)getWidth(), 119.5f, 0.5f);
 
     drawABLoopMarkers(g);
     drawTrackMarkers(g);
@@ -444,10 +513,10 @@ void PlayerGUI::drawABLoopMarkers(juce::Graphics &g)
 
         juce::Rectangle<int> loopRegion(xA, trackY - 10,
                                         xB - xA, trackHeight + 20);
-        g.setColour(juce::Colour(0x3000FF00));
+        g.setColour(juce::Colour(0x4027AE60));
         g.fillRect(loopRegion);
 
-        g.setColour(juce::Colour(0x8000FF00));
+        g.setColour(juce::Colour(0x902ECC71));
         g.drawRect(loopRegion, 2);
     }
 
@@ -462,10 +531,10 @@ void PlayerGUI::drawABLoopMarkers(juce::Graphics &g)
             static_cast<float>(xA), static_cast<float>(trackY - 15),
             static_cast<float>(xA - 8), static_cast<float>(trackY - 5),
             static_cast<float>(xA + 8), static_cast<float>(trackY - 5));
-        g.setColour(juce::Colour(0xFF3498DB));
+        g.setColour(juce::Colour(0xFF4A90E2));
         g.fillPath(markerA);
 
-        g.setColour(juce::Colour(0xFF3498DB));
+        g.setColour(juce::Colour(0xFF4A90E2));
         g.drawLine(static_cast<float>(xA), static_cast<float>(trackY - 5),
                    static_cast<float>(xA), static_cast<float>(trackY + trackHeight + 5), 2.0f);
 
@@ -556,19 +625,23 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     // Set waveform listener for async waveform updates
     playerAudio.setWaveformListener(this);
 
-    playlistBox.setRowHeight(28);
-    playlistBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF2C3E50));
-    playlistBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF34495E));
+    playlistBox.setRowHeight(30);
+    playlistBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF1A1F2E));
+    playlistBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF3A3F50));
     playlistBox.setModel(this);
     addAndMakeVisible(playlistBox);
 
-    addFilesButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
+    addFilesButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF27AE60));
+    addFilesButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF2ECC71));
     addFilesButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addFilesButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(addFilesButton);
     addFilesButton.addListener(this);
 
-    loadLast.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF9B59B6));
+    loadLast.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8E44AD));
+    loadLast.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF9B59B6));
     loadLast.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    loadLast.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(loadLast);
     loadLast.addListener(this);
 
@@ -650,83 +723,87 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     volumeSlider.setRange(0.0, 10.0, 0.1);
     volumeSlider.setValue(1.00);
     volumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-    volumeSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    volumeSlider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xFF34495E));
-    volumeSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF3498DB));
-    volumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFF2980B9));
+    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 22);
+    volumeSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xFFE8E8E8));
+    volumeSlider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xFF2A2F3E));
+    volumeSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xFF3A3F50));
+    volumeSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF4A90E2));
+    volumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFF5A9EF0));
+    volumeSlider.setColour(juce::Slider::backgroundColourId, juce::Colour(0xFF2A2F3E));
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
     volumeLabel.setText("Volume: 1.00", juce::dontSendNotification);
-    volumeLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
-    volumeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
-    volumeLabel.setJustificationType(juce::Justification::centred);
+    volumeLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    volumeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
+    volumeLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(volumeLabel);
 
     speedslider.setRange(0.25, 2.0, 0.25);
     speedslider.setValue(1.0);
     speedslider.setSliderStyle(juce::Slider::LinearHorizontal);
-    speedslider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
-    speedslider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    speedslider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xFF34495E));
+    speedslider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 22);
+    speedslider.setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xFFE8E8E8));
+    speedslider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xFF2A2F3E));
+    speedslider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xFF3A3F50));
     speedslider.setColour(juce::Slider::trackColourId, juce::Colour(0xFFE67E22));
-    speedslider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFFD35400));
+    speedslider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFFF39C12));
+    speedslider.setColour(juce::Slider::backgroundColourId, juce::Colour(0xFF2A2F3E));
     speedslider.addListener(this);
     addAndMakeVisible(speedslider);
 
     speedLabel.setText("Speed: 1.00x", juce::dontSendNotification);
-    speedLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
-    speedLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
-    speedLabel.setJustificationType(juce::Justification::centred);
+    speedLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    speedLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
+    speedLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(speedLabel);
 
     positionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     positionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     positionSlider.setRange(0.0, 1.0, 0.001);
-    positionSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF34495E));
-    positionSlider.setColour(juce::Slider::backgroundColourId, juce::Colour(0xFFBDC3C7));
-    positionSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFF2980B9));
+    positionSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF4A90E2));
+    positionSlider.setColour(juce::Slider::backgroundColourId, juce::Colour(0xFF2A2F3E));
+    positionSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFF5A9EF0));
     positionSlider.addListener(this);
     addAndMakeVisible(positionSlider);
 
     currentTimeLabel.setText("00:00", juce::dontSendNotification);
     currentTimeLabel.setJustificationType(juce::Justification::centredLeft);
     currentTimeLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
-    currentTimeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    currentTimeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
     addAndMakeVisible(currentTimeLabel);
 
     totalTimeLabel.setText("00:00", juce::dontSendNotification);
     totalTimeLabel.setJustificationType(juce::Justification::centredRight);
     totalTimeLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
-    totalTimeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    totalTimeLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
     addAndMakeVisible(totalTimeLabel);
 
     metadataTitleLabel.setText("No file loaded", juce::dontSendNotification);
-    metadataTitleLabel.setFont(juce::FontOptions(22.0f, juce::Font::bold));
+    metadataTitleLabel.setFont(juce::FontOptions(24.0f, juce::Font::bold));
     metadataTitleLabel.setJustificationType(juce::Justification::centred);
-    metadataTitleLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    metadataTitleLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFF5F5F5));
     metadataTitleLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataTitleLabel);
 
     metadataArtistLabel.setText("", juce::dontSendNotification);
-    metadataArtistLabel.setFont(juce::FontOptions(16.0f, juce::Font::plain));
+    metadataArtistLabel.setFont(juce::FontOptions(17.0f, juce::Font::plain));
     metadataArtistLabel.setJustificationType(juce::Justification::centred);
-    metadataArtistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFECF0F1));
+    metadataArtistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFD8D8E8));
     metadataArtistLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataArtistLabel);
 
     metadataAlbumLabel.setText("", juce::dontSendNotification);
-    metadataAlbumLabel.setFont(juce::FontOptions(14.0f, juce::Font::italic));
+    metadataAlbumLabel.setFont(juce::FontOptions(15.0f, juce::Font::italic));
     metadataAlbumLabel.setJustificationType(juce::Justification::centred);
-    metadataAlbumLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFBDC3C7));
+    metadataAlbumLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFB8C0D0));
     metadataAlbumLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataAlbumLabel);
 
     metadataInfoLabel.setText("", juce::dontSendNotification);
     metadataInfoLabel.setFont(juce::FontOptions(12.0f, juce::Font::plain));
     metadataInfoLabel.setJustificationType(juce::Justification::centred);
-    metadataInfoLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF95A5A6));
+    metadataInfoLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF9A9FAE));
     metadataInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     addAndMakeVisible(metadataInfoLabel);
 
@@ -741,65 +818,76 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     lastFile = juce::File(lastFilePath);
 
     setPointAButton.addListener(this);
-    setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
+    setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4A90E2));
     setPointAButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-    setPointAButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF2980B9));
+    setPointAButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF5A9EF0));
+    setPointAButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(setPointAButton);
 
     setPointBButton.addListener(this);
     setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
     setPointBButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-    setPointBButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFC0392B));
+    setPointBButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5555));
+    setPointBButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(setPointBButton);
 
     clearABButton.addListener(this);
-    clearABButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF95A5A6));
+    clearABButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF7F8C8D));
     clearABButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    clearABButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(clearABButton);
 
     enableABLoopButton.addListener(this);
-    enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
+    enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF27AE60));
     enableABLoopButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-    enableABLoopButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF27AE60));
+    enableABLoopButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF2ECC71));
+    enableABLoopButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(enableABLoopButton);
 
     abLoopInfoLabel.setText("A-B Loop: Not set", juce::dontSendNotification);
     abLoopInfoLabel.setJustificationType(juce::Justification::centred);
     abLoopInfoLabel.setFont(juce::FontOptions(13.0f, juce::Font::bold));
-    abLoopInfoLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    abLoopInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xFF34495E));
-    abLoopInfoLabel.setColour(juce::Label::outlineColourId, juce::Colour(0xFF2C3E50));
+    abLoopInfoLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
+    abLoopInfoLabel.setColour(juce::Label::backgroundColourId, juce::Colour(0xFF2A2F3E));
+    abLoopInfoLabel.setColour(juce::Label::outlineColourId, juce::Colour(0xFF3A3F50));
     addAndMakeVisible(abLoopInfoLabel);
 
     clearPlaylistButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
+    clearPlaylistButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5555));
     clearPlaylistButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    clearPlaylistButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(clearPlaylistButton);
     clearPlaylistButton.addListener(this);
 
-    unLoadTrack.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFe67e22));
+    unLoadTrack.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE67E22));
+    unLoadTrack.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFF39C12));
     unLoadTrack.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    unLoadTrack.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(unLoadTrack);
     unLoadTrack.addListener(this);
 
     addMarkerButton.addListener(this);
     addMarkerButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF9B59B6));
+    addMarkerButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF8E44AD));
     addMarkerButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    addMarkerButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(addMarkerButton);
 
     clearMarkersButton.addListener(this);
-    clearMarkersButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF95A5A6));
+    clearMarkersButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF7F8C8D));
     clearMarkersButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    clearMarkersButton.getProperties().set("fontSize", 12.0f);
     addAndMakeVisible(clearMarkersButton);
 
     markersLabel.setText("Track Markers", juce::dontSendNotification);
-    markersLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
-    markersLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    markersLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
+    markersLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
     markersLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(markersLabel);
 
-    markersListBox.setRowHeight(26);
-    markersListBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF34495E));
-    markersListBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF2C3E50));
+    markersListBox.setRowHeight(28);
+    markersListBox.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF1A1F2E));
+    markersListBox.setColour(juce::ListBox::outlineColourId, juce::Colour(0xFF3A3F50));
     markersListBox.setModel(&markersListBoxModel);
     addAndMakeVisible(markersListBox);
 
@@ -808,8 +896,8 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     markers.clear();
 
     playlistLabel.setText("Playlist", juce::dontSendNotification);
-    playlistLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
-    playlistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF2C3E50));
+    playlistLabel.setFont(juce::FontOptions(15.0f, juce::Font::bold));
+    playlistLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE8E8E8));
     playlistLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(playlistLabel);
 
@@ -819,52 +907,50 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
 
 void PlayerGUI::resized()
 {
-    int metadataY = 10;
-    metadataTitleLabel.setBounds(20, metadataY, getWidth() - 40, 28);
-    metadataArtistLabel.setBounds(20, metadataY + 34, getWidth() - 40, 24);
-    metadataAlbumLabel.setBounds(20, metadataY + 60, getWidth() - 40, 22);
-    metadataInfoLabel.setBounds(20, metadataY + 84, getWidth() - 40, 20);
+    int metadataY = 12;
+    metadataTitleLabel.setBounds(20, metadataY, getWidth() - 40, 30);
+    metadataArtistLabel.setBounds(20, metadataY + 35, getWidth() - 40, 26);
+    metadataAlbumLabel.setBounds(20, metadataY + 63, getWidth() - 40, 22);
+    metadataInfoLabel.setBounds(20, metadataY + 87, getWidth() - 40, 20);
 
-    int y = 125;
+    int y = 135;
     int buttonWidth = 70;
     int buttonHeight = 35;
     int spacing = 15;
 
-    int numButtons = 13;
+    int numButtons = 10;
     int totalWidth = numButtons * buttonWidth + (numButtons - 1) * spacing;
     int startX = (getWidth() - totalWidth) / 2;
 
     loadButton.setBounds(startX + (buttonWidth + spacing) * 0, y, buttonWidth, buttonHeight);
-    restartButton.setBounds(startX + (buttonWidth + spacing) * 1, y, buttonWidth, buttonHeight);
+    backwardButton.setBounds(startX + (buttonWidth + spacing) * 1, y, buttonWidth, buttonHeight);
     BeginButton.setBounds(startX + (buttonWidth + spacing) * 2, y, buttonWidth, buttonHeight);
     PlayButton.setBounds(startX + (buttonWidth + spacing) * 3, y, buttonWidth, buttonHeight);
     EndButton.setBounds(startX + (buttonWidth + spacing) * 4, y, buttonWidth, buttonHeight);
-    LoopButton.setBounds(startX + (buttonWidth + spacing) * 5, y, buttonWidth, buttonHeight);
-    MuteButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
-    backwardButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
-    forwardButton.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
-    loadLast.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
-    addFilesButton.setBounds(startX + (buttonWidth + spacing) * 10, y, buttonWidth, buttonHeight);
-    clearPlaylistButton.setBounds(startX + (buttonWidth + spacing) * 11, y, buttonWidth, buttonHeight);
-    unLoadTrack.setBounds(startX + (buttonWidth + spacing) * 12, y, buttonWidth, buttonHeight);
+    forwardButton.setBounds(startX + (buttonWidth + spacing) * 5, y, buttonWidth, buttonHeight);
+    LoopButton.setBounds(startX + (buttonWidth + spacing) * 6, y, buttonWidth, buttonHeight);
+    restartButton.setBounds(startX + (buttonWidth + spacing) * 7, y, buttonWidth, buttonHeight);
+    loadLast.setBounds(startX + (buttonWidth + spacing) * 8, y, buttonWidth, buttonHeight);
+    unLoadTrack.setBounds(startX + (buttonWidth + spacing) * 9, y, buttonWidth, buttonHeight);
 
-    int positionY = 185;
-    currentTimeLabel.setBounds(20, positionY, 60, 20);
-    totalTimeLabel.setBounds(getWidth() - 80, positionY, 60, 20);
-    positionSlider.setBounds(85, positionY, getWidth() - 170, 20);
+    int positionY = 195;
+    currentTimeLabel.setBounds(20, positionY, 65, 22);
+    totalTimeLabel.setBounds(getWidth() - 85, positionY, 65, 22);
+    positionSlider.setBounds(90, positionY, getWidth() - 180, 22);
 
     // Position waveform directly under the progress bar
-    int waveformY = positionY + 25;
-    int waveformHeight = 60;
-    waveformComponent.setBounds(85, waveformY, getWidth() - 170, waveformHeight);
+    int waveformY = positionY + 30;
+    int waveformHeight = 70;
+    waveformComponent.setBounds(90, waveformY, getWidth() - 180, waveformHeight);
 
-    volumeLabel.setBounds(20, waveformY + waveformHeight + 10, 80, 25);
-    volumeSlider.setBounds(110, waveformY + waveformHeight + 10, getWidth() - 130, 25);
+    volumeSlider.setBounds(110, waveformY + waveformHeight + 15, getWidth() -250, 26);
+    MuteButton.setBounds(50, waveformY + waveformHeight+9 , buttonWidth, buttonHeight);
 
-    speedLabel.setBounds(20, waveformY + waveformHeight + 45, 80, 25);
-    speedslider.setBounds(110, waveformY + waveformHeight + 45, getWidth() - 130, 25);
 
-    int abLoopY = waveformY + waveformHeight + 80;
+    speedLabel.setBounds(20, waveformY + waveformHeight + 50, 85, 26);
+    speedslider.setBounds(110, waveformY + waveformHeight + 50, getWidth() - 135, 26);
+
+    int abLoopY = waveformY + waveformHeight + 85;
     int abLoopButtonWidth = 100;
     int abLoopButtonHeight = 32;
     int abLoopSpacing = 10;
@@ -884,6 +970,8 @@ void PlayerGUI::resized()
     addMarkerButton.setBounds(180, markerY, 100, 25);
     clearMarkersButton.setBounds(290, markerY, 130, 25);
     playlistLabel.setBounds(625, markerY, 150, 25);
+    addFilesButton.setBounds(700, markerY, 100,25 );
+    clearPlaylistButton.setBounds(810, markerY,100 ,25 );
     int remainingHeight = getHeight() - (markerY + 35);
     int playlistandMarkerListHeight = static_cast<int>(remainingHeight * 0.6);
 
@@ -1144,16 +1232,16 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                     
                     if (playerAudio.isPositionSetA())
                     {
-                        setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2980B9));
+                        setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF5A9EF0));
                     }
                     else
                     {
-                        setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
+                        setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4A90E2));
                     }
                     
                     if (playerAudio.isPositionSetB())
                     {
-                        setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFC0392B));
+                        setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFFF5555));
                     }
                     else
                     {
@@ -1247,12 +1335,12 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         if (playerAudio.isPositionSetA())
         {
             playerAudio.clearPositionA();
-            setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
+            setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4A90E2));
         }
         else
         {
             playerAudio.setPointA(playerAudio.getPosition());
-            setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2980B9));
+            setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF5A9EF0));
         }
         updateABLoopDisplay();
         waveformComponent.repaint();
@@ -1268,7 +1356,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
         else
         {
             playerAudio.setPointB(playerAudio.getPosition());
-            setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFC0392B));
+            setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFFF5555));
         }
         updateABLoopDisplay();
         waveformComponent.repaint();
@@ -1278,7 +1366,7 @@ void PlayerGUI::buttonClicked(juce::Button *button)
     {
         playerAudio.clearPositionA();
         playerAudio.clearPositionB();
-        setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3498DB));
+        setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4A90E2));
         setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
         updateABLoopDisplay();
         waveformComponent.repaint();
@@ -1332,7 +1420,16 @@ void PlayerGUI::sliderValueChanged(juce::Slider *slider)
         float v = (float)slider->getValue();
         playerAudio.setGain(v);
         volumeLabel.setText("Volume: " + juce::String(v, 2), juce::dontSendNotification);
-
+        if (v <= 0.001f)
+        {
+            isMuted = true;
+            setMuteButtonState(true);
+        }
+        else
+        {
+            isMuted = false;
+            setMuteButtonState(false);
+		}
         if (!isMuted)
         {
             previousGain = v;
@@ -1659,19 +1756,19 @@ void PlayerGUI::updateABLoopDisplay()
         if (playerAudio.isABLoopEnabled())
         {
             enableABLoopButton.setButtonText("A-B Loop: ON");
-            enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF27AE60));
+            enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
         }
         else
         {
             enableABLoopButton.setButtonText("A-B Loop: OFF");
-            enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
+            enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF27AE60));
         }
     }
     else
     {
         abLoopInfoLabel.setText("A-B Loop: Not set", juce::dontSendNotification);
         enableABLoopButton.setButtonText("A-B Loop: OFF");
-        enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2ECC71));
+        enableABLoopButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF27AE60));
     }
 }
 
