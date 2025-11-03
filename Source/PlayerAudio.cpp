@@ -6,6 +6,8 @@ PlayerAudio::PlayerAudio()
 
 PlayerAudio::~PlayerAudio()
 {
+    // Stop waveform generation thread in destructor
+    stopWaveformGeneration();
 }
 
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
@@ -107,7 +109,18 @@ bool PlayerAudio::loadFile(const juce::File& file)
     {
 		lastLoadedFile = file;
         extractMetadata(file);
-        generateWaveform(file); // Generate waveform data
+        
+        // Stop any ongoing waveform generation
+        stopWaveformGeneration();
+        
+        // Clear existing waveform data
+        {
+            juce::ScopedLock lock(waveformDataLock);
+            waveformData.clear();
+        }
+        
+        // Generate waveform asynchronously (non-blocking)
+        generateWaveformAsync(file);
 
         if (auto* reader = formatManager.createReaderFor(file))
         {
@@ -280,7 +293,15 @@ void PlayerAudio::unloadFile()
     transportSource.setSource(nullptr);
     readerSource.reset();
     lastLoadedFile = juce::File();
-    waveformData.clear(); // Clear waveform data when unloading
+    
+    // Stop waveform generation thread
+    stopWaveformGeneration();
+    
+    // Clear waveform data
+    {
+        juce::ScopedLock lock(waveformDataLock);
+        waveformData.clear();
+    }
 }
 
 void PlayerAudio::generateWaveform(const juce::File& file)
@@ -301,7 +322,7 @@ void PlayerAudio::generateWaveform(const juce::File& file)
         return;
     
     // Calculate number of peaks to extract
-    const int numPeaks = 2048; // Adjust this for more/less detail
+    const int numPeaks = 512; // Adjust this for more/less detail
     const juce::int64 samplesPerPeak = numSamples / numPeaks;
     
     if (samplesPerPeak <= 0)
@@ -361,5 +382,158 @@ void PlayerAudio::generateWaveform(const juce::File& file)
             float rms = std::sqrt(sumSquared / static_cast<float>(totalCount));
             waveformData[peakIndex] = juce::jlimit(0.0f, 1.0f, rms);
         }
+    }
+}
+
+// Async waveform generation implementation
+class PlayerAudio::WaveformGeneratorThread : public juce::Thread
+{
+public:
+    WaveformGeneratorThread(PlayerAudio* owner, const juce::File& file, juce::AudioFormatManager& manager)
+        : Thread("WaveformGenerator"),
+          audioOwner(owner),
+          targetFile(file),
+          formatManager(manager)
+    {
+    }
+
+    void run() override
+    {
+        if (!targetFile.existsAsFile())
+            return;
+
+        std::unique_ptr<juce::AudioFormatReader> reader(formatManager.createReaderFor(targetFile));
+        if (reader == nullptr)
+            return;
+
+        const juce::int64 numSamples = reader->lengthInSamples;
+        const int numChannels = reader->numChannels;
+
+        if (numSamples <= 0 || numChannels <= 0)
+            return;
+
+        // Calculate number of peaks to extract
+        const int numPeaks = 512;
+        const juce::int64 samplesPerPeak = numSamples / numPeaks;
+
+        if (samplesPerPeak <= 0)
+            return;
+
+        std::vector<float> newWaveformData(numPeaks, 0.0f);
+
+        // Create audio buffer for reading samples
+        juce::AudioBuffer<float> tempBuffer(static_cast<int>(numChannels), static_cast<int>(samplesPerPeak));
+
+        // Read audio in chunks and calculate RMS (root mean square) for each peak
+        for (int peakIndex = 0; peakIndex < numPeaks; ++peakIndex)
+        {
+            // Check if thread should exit
+            if (threadShouldExit())
+                return;
+
+            const juce::int64 startSample = peakIndex * samplesPerPeak;
+            const int numSamplesToRead = static_cast<int>(juce::jmin(samplesPerPeak, numSamples - startSample));
+
+            if (numSamplesToRead <= 0)
+                break;
+
+            // Clear buffer first
+            tempBuffer.clear();
+
+            // Read samples into buffer
+            bool success = false;
+            try {
+                success = reader->read(&tempBuffer, 0, numSamplesToRead, startSample, true, true);
+            } catch (...) {
+                continue;
+            }
+
+            if (!success)
+                continue;
+
+            // Calculate RMS across all channels
+            float sumSquared = 0.0f;
+            int totalCount = 0;
+            const int actualChannels = juce::jmin(numChannels, tempBuffer.getNumChannels());
+
+            for (int channel = 0; channel < actualChannels; ++channel)
+            {
+                const float* channelData = tempBuffer.getReadPointer(channel);
+                if (channelData != nullptr)
+                {
+                    for (int sample = 0; sample < numSamplesToRead && sample < tempBuffer.getNumSamples(); ++sample)
+                    {
+                        const float sampleValue = channelData[sample];
+                        sumSquared += sampleValue * sampleValue;
+                        totalCount++;
+                    }
+                }
+            }
+
+            if (totalCount > 0)
+            {
+                float rms = std::sqrt(sumSquared / static_cast<float>(totalCount));
+                newWaveformData[peakIndex] = juce::jlimit(0.0f, 1.0f, rms);
+            }
+        }
+
+        // Update waveform data on the main thread (safely)
+        if (audioOwner != nullptr && !threadShouldExit())
+        {
+            audioOwner->setWaveformData(newWaveformData);
+        }
+    }
+
+private:
+    PlayerAudio* audioOwner;
+    juce::File targetFile;
+    juce::AudioFormatManager& formatManager;
+};
+
+void PlayerAudio::generateWaveformAsync(const juce::File& file)
+{
+    // Stop any existing waveform generation
+    stopWaveformGeneration();
+
+    // Create and start new thread
+    waveformThread = std::make_unique<WaveformGeneratorThread>(this, file, formatManager);
+    waveformThread->startThread();
+}
+
+bool PlayerAudio::isWaveformGenerating() const
+{
+    return waveformThread != nullptr && waveformThread->isThreadRunning();
+}
+
+void PlayerAudio::stopWaveformGeneration()
+{
+    if (waveformThread != nullptr)
+    {
+        waveformThread->stopThread(1000);
+        waveformThread.reset();
+    }
+}
+
+std::vector<float> PlayerAudio::getWaveformData() const
+{
+    juce::ScopedLock lock(waveformDataLock);
+    return waveformData;
+}
+
+void PlayerAudio::setWaveformData(const std::vector<float>& data)
+{
+    {
+        juce::ScopedLock lock(waveformDataLock);
+        waveformData = data;
+    }
+    
+    // Notify listener on message thread
+    if (waveformListener != nullptr)
+    {
+        juce::MessageManager::callAsync([this]()
+        {
+            if (waveformListener != nullptr)
+                waveformListener->waveformDataReady();
+        });
     }
 }

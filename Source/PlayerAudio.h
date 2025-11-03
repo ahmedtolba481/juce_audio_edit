@@ -74,8 +74,20 @@ public:
     void unloadFile();
     
     // Waveform functionality
-    const std::vector<float>& getWaveformData() const { return waveformData; }
+    std::vector<float> getWaveformData() const;
     void generateWaveform(const juce::File& file);
+    
+    // Async waveform generation
+    class WaveformGeneratorThread;
+    class WaveformListener
+    {
+    public:
+        virtual ~WaveformListener() = default;
+        virtual void waveformDataReady() = 0;
+    };
+    void setWaveformListener(WaveformListener* listener) { waveformListener = listener; }
+    void generateWaveformAsync(const juce::File& file);
+    bool isWaveformGenerating() const;
 
 private:
     juce::AudioFormatManager formatManager;
@@ -101,4 +113,11 @@ private:
     
     // Waveform data
     std::vector<float> waveformData;
+    std::unique_ptr<WaveformGeneratorThread> waveformThread;
+    mutable juce::CriticalSection waveformDataLock;
+    WaveformListener* waveformListener = nullptr;
+    
+    // Helper methods
+    void setWaveformData(const std::vector<float>& data);
+    void stopWaveformGeneration();
 };

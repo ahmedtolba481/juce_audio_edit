@@ -99,7 +99,8 @@ class PlayerGUI : public juce::Component,
                   public juce::Slider::Listener,
                   public juce::Timer,
                   public juce::ListBoxModel,
-                  public juce::DragAndDropTarget
+                  public juce::DragAndDropTarget,
+                  public PlayerAudio::WaveformListener
 {
 public:
     PlayerGUI();
@@ -117,6 +118,7 @@ public:
     juce::Component *refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component *existingComponentToUpdate) override;
     void selectedRowsChanged(int lastRowSelected) override;
     juce::var getDragSourceDescription(const juce::SparseSet<int> &selectedRows) override;
+    void waveformDataReady() override;
     void rowsDropped(const juce::DragAndDropTarget::SourceDetails &dragSourceDetails, int insertIndex);
     void deleteTrack(int index);
     void selectPlaylistRow(int rowIndex);
