@@ -128,8 +128,8 @@ private:
     WaveformListener* waveformListener = nullptr;
     
     // Advanced Audio Processing - Effects
-    juce::dsp::Reverb reverb;
-    juce::dsp::Reverb::Parameters reverbParams;
+    juce::Reverb reverb;
+    juce::Reverb::Parameters reverbParams;
     
     bool reverbEnabled = false;
     float reverbRoomSize = 0.5f;

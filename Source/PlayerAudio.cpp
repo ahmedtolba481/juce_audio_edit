@@ -1,5 +1,4 @@
 ﻿#include "PlayerAudio.h"
-#include <juce_dsp/juce_dsp.h>
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
@@ -18,14 +17,6 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
     
     // Initialize effects
     currentSampleRate = sampleRate;
-    
-    // Prepare DSP effects
-    juce::dsp::ProcessSpec spec;
-    spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlockExpected);
-    spec.numChannels = static_cast<juce::uint32>(2);
-    
-    reverb.prepare(spec);
     
     // Initialize reverb parameters
     reverbParams.roomSize = reverbRoomSize;
@@ -602,10 +593,20 @@ void PlayerAudio::processEffects(juce::AudioBuffer<float>& buffer)
         reverbParams.wetLevel = reverbWetLevel;
         reverbParams.dryLevel = 1.0f - reverbWetLevel;
         reverb.setParameters(reverbParams);
-        
-        juce::dsp::AudioBlock<float> block(buffer);
-        juce::dsp::ProcessContextReplacing<float> context(block);
-        reverb.process(context);
+
+        const int numSamples = buffer.getNumSamples();
+        const int numChannels = buffer.getNumChannels();
+        if (numChannels >= 2)
+        {
+            float* left = buffer.getWritePointer(0);
+            float* right = buffer.getWritePointer(1);
+            reverb.processStereo(left, right, numSamples);
+        }
+        else if (numChannels == 1)
+        {
+            float* mono = buffer.getWritePointer(0);
+            reverb.processMono(mono, numSamples);
+        }
     }
 }
 
