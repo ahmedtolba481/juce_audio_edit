@@ -15,20 +15,20 @@ MainComponent::MainComponent()
 	player2.setOtherPlayer2(&player2);  // Player2's "Mixer 2" button plays on player2
 	
 	// Setup mixer controls - Track 1 volume slider
-	track1VolumeSlider.setRange(0.0, 1.0, 0.01);
-	track1VolumeSlider.setValue(0.5);
-	track1VolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
-	track1VolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 20);
+	track1VolumeSlider.setRange(0.0, 10.0, 1.0);
+	track1VolumeSlider.setValue(5.0);
+	track1VolumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+	track1VolumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
 	track1VolumeSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF4A90E2));
 	track1VolumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFF5A9EF0));
 	track1VolumeSlider.addListener(this);
 	addAndMakeVisible(track1VolumeSlider);
 	
 	// Track 2 volume slider
-	track2VolumeSlider.setRange(0.0, 1.0, 0.01);
-	track2VolumeSlider.setValue(0.5);
-	track2VolumeSlider.setSliderStyle(juce::Slider::LinearVertical);
-	track2VolumeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 20);
+	track2VolumeSlider.setRange(0.0, 10.0, 1.0);
+	track2VolumeSlider.setValue(5.0);
+	track2VolumeSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+	track2VolumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
 	track2VolumeSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFFE74C3C));
 	track2VolumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xFFFF5555));
 	track2VolumeSlider.addListener(this);
@@ -95,8 +95,9 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
         tempBuffer.setSize(numChannels, numSamples, false, false, true);
     }
     
-    float track1Vol = static_cast<float>(track1VolumeSlider.getValue());
-    float track2Vol = static_cast<float>(track2VolumeSlider.getValue());
+    // Convert slider values from 0-10 range to 0-1 range for audio mixing
+    float track1Vol = static_cast<float>(track1VolumeSlider.getValue()) / 10.0f;
+    float track2Vol = static_cast<float>(track2VolumeSlider.getValue()) / 10.0f;
     
     // Get audio from player 1 and mix it in
     if (track1Vol > 0.0f)
@@ -151,12 +152,12 @@ void MainComponent::resized()
     
     // Track 1 controls
     track1VolumeLabel.setBounds(track1Area.removeFromTop(20));
-    auto slider1Area = track1Area.reduced(30, 0);
+    auto slider1Area = track1Area.reduced(10, 5);
     track1VolumeSlider.setBounds(slider1Area);
     
     // Track 2 controls
     track2VolumeLabel.setBounds(track2Area.removeFromTop(20));
-    auto slider2Area = track2Area.reduced(30, 0);
+    auto slider2Area = track2Area.reduced(10, 5);
     track2VolumeSlider.setBounds(slider2Area);
     
     // Two players side by side in remaining space

@@ -917,6 +917,29 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     playlistLoopButton.setToggleState(isPlaylistLooping, juce::dontSendNotification);
     lastFile = juce::File(lastFilePath);
 
+    // Load reverb and delay settings on startup
+    bool savedReverbEnabled = propertiesFile->getBoolValue("reverbEnabled", false);
+    double savedReverbWetLevel = propertiesFile->getDoubleValue("reverbWetLevel", 0.3);
+    double savedReverbRoomSize = propertiesFile->getDoubleValue("reverbRoomSize", 0.5);
+
+    reverbButton.setToggleState(savedReverbEnabled, juce::dontSendNotification);
+    reverbSlider.setValue(savedReverbWetLevel, juce::dontSendNotification);
+    reverbSlider.setEnabled(savedReverbEnabled);
+    playerAudio.setReverbEnabled(savedReverbEnabled);
+    playerAudio.setReverbWetLevel(static_cast<float>(savedReverbWetLevel));
+    playerAudio.setReverbRoomSize(static_cast<float>(savedReverbRoomSize));
+
+    bool savedDelayEnabled = propertiesFile->getBoolValue("delayEnabled", false);
+    double savedDelayTime = propertiesFile->getDoubleValue("delayTime", 200.0);
+    double savedDelayFeedback = propertiesFile->getDoubleValue("delayFeedback", 0.3);
+
+    delayButton.setToggleState(savedDelayEnabled, juce::dontSendNotification);
+    delaySlider.setValue(savedDelayTime, juce::dontSendNotification);
+    delaySlider.setEnabled(savedDelayEnabled);
+    playerAudio.setDelayEnabled(savedDelayEnabled);
+    playerAudio.setDelayTime(static_cast<float>(savedDelayTime));
+    playerAudio.setDelayFeedback(static_cast<float>(savedDelayFeedback));
+
     setPointAButton.addListener(this);
     setPointAButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4A90E2));
     setPointAButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
@@ -1001,6 +1024,41 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     playlistLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(playlistLabel);
 
+    // Initialize Advanced Audio Processing - Effects Controls
+    reverbButton.addListener(this);
+    reverbButton.setClickingTogglesState(true);
+    reverbButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF34495E));
+    reverbButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF9B59B6));
+    reverbButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    reverbButton.getProperties().set("fontSize", 11.0f);
+    addAndMakeVisible(reverbButton);
+
+    reverbSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    reverbSlider.setRange(0.0, 1.0, 0.01);
+    reverbSlider.setValue(0.3);
+    reverbSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
+    reverbSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFF9B59B6));
+    reverbSlider.setEnabled(false);
+    reverbSlider.addListener(this);
+    addAndMakeVisible(reverbSlider);
+
+    delayButton.addListener(this);
+    delayButton.setClickingTogglesState(true);
+    delayButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF34495E));
+    delayButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFF39C12));
+    delayButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    delayButton.getProperties().set("fontSize", 11.0f);
+    addAndMakeVisible(delayButton);
+
+    delaySlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    delaySlider.setRange(0.0, 1000.0, 10.0);
+    delaySlider.setValue(200.0);
+    delaySlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 60, 20);
+    delaySlider.setColour(juce::Slider::trackColourId, juce::Colour(0xFFF39C12));
+    delaySlider.setEnabled(false);
+    delaySlider.addListener(this);
+    addAndMakeVisible(delaySlider);
+
     // Add waveform component
     addAndMakeVisible(waveformComponent);
 }
@@ -1049,7 +1107,21 @@ void PlayerGUI::resized()
     speedLabel.setBounds(20, waveformY + waveformHeight + 50, 85, 26);
     speedslider.setBounds(110, waveformY + waveformHeight + 50, getWidth() - 135, 26);
 
-    int abLoopY = waveformY + waveformHeight + 85;
+    // Advanced Audio Processing - Effects Controls (below speed slider)
+    int effectsY = waveformY + waveformHeight + 85;
+    int effectsButtonWidth = 45;
+    int effectsButtonHeight = 25;
+    int effectsSliderWidth = 120;
+
+    // Reverb
+    reverbButton.setBounds(20, effectsY, effectsButtonWidth, effectsButtonHeight);
+    reverbSlider.setBounds(20 + effectsButtonWidth + 5, effectsY, effectsSliderWidth, effectsButtonHeight);
+
+    // Delay
+    delayButton.setBounds(20 + effectsButtonWidth + effectsSliderWidth + 15, effectsY, effectsButtonWidth, effectsButtonHeight);
+    delaySlider.setBounds(20 + effectsButtonWidth * 2 + effectsSliderWidth + 20, effectsY, effectsSliderWidth, effectsButtonHeight);
+
+    int abLoopY = effectsY + effectsButtonHeight + 15;
     int abLoopButtonWidth = 100;
     int abLoopButtonHeight = 32;
     int abLoopSpacing = 10;
@@ -1444,6 +1516,30 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                         setPointBButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
                     }
                     
+                    // Restore reverb settings
+                    bool savedReverbEnabled = propertiesFile->getBoolValue("reverbEnabled", false);
+                    double savedReverbWetLevel = propertiesFile->getDoubleValue("reverbWetLevel", 0.3);
+                    double savedReverbRoomSize = propertiesFile->getDoubleValue("reverbRoomSize", 0.5);
+                    
+                    reverbButton.setToggleState(savedReverbEnabled, juce::dontSendNotification);
+                    reverbSlider.setValue(savedReverbWetLevel, juce::dontSendNotification);
+                    reverbSlider.setEnabled(savedReverbEnabled);
+                    playerAudio.setReverbEnabled(savedReverbEnabled);
+                    playerAudio.setReverbWetLevel(static_cast<float>(savedReverbWetLevel));
+                    playerAudio.setReverbRoomSize(static_cast<float>(savedReverbRoomSize));
+                    
+                    // Restore delay settings
+                    bool savedDelayEnabled = propertiesFile->getBoolValue("delayEnabled", false);
+                    double savedDelayTime = propertiesFile->getDoubleValue("delayTime", 200.0);
+                    double savedDelayFeedback = propertiesFile->getDoubleValue("delayFeedback", 0.3);
+                    
+                    delayButton.setToggleState(savedDelayEnabled, juce::dontSendNotification);
+                    delaySlider.setValue(savedDelayTime, juce::dontSendNotification);
+                    delaySlider.setEnabled(savedDelayEnabled);
+                    playerAudio.setDelayEnabled(savedDelayEnabled);
+                    playerAudio.setDelayTime(static_cast<float>(savedDelayTime));
+                    playerAudio.setDelayFeedback(static_cast<float>(savedDelayFeedback));
+                    
                     updateABLoopDisplay();
                     waveformComponent.repaint();
                     
@@ -1642,6 +1738,18 @@ void PlayerGUI::buttonClicked(juce::Button *button)
             repaint();
         }
     }
+    else if (button == &reverbButton)
+    {
+        bool enabled = reverbButton.getToggleState();
+        playerAudio.setReverbEnabled(enabled);
+        reverbSlider.setEnabled(enabled);
+    }
+    else if (button == &delayButton)
+    {
+        bool enabled = delayButton.getToggleState();
+        playerAudio.setDelayEnabled(enabled);
+        delaySlider.setEnabled(enabled);
+    }
 }
 
 void PlayerGUI::sliderValueChanged(juce::Slider *slider)
@@ -1682,6 +1790,17 @@ void PlayerGUI::sliderValueChanged(juce::Slider *slider)
 
         juce::Timer::callAfterDelay(100, [this]()
                                     { isDraggingSlider = false; });
+    }
+    else if (slider == &reverbSlider)
+    {
+        float wetLevel = (float)slider->getValue();
+        playerAudio.setReverbWetLevel(wetLevel);
+        playerAudio.setReverbRoomSize(0.5f + wetLevel * 0.5f); // Room size based on wet level
+    }
+    else if (slider == &delaySlider)
+    {
+        float delayMs = (float)slider->getValue();
+        playerAudio.setDelayTime(delayMs);
     }
 }
 
@@ -2567,6 +2686,17 @@ void PlayerGUI::savePropertiesFileState()
 
     propertiesFile->setValue("abLoopEnabled", playerAudio.isABLoopEnabled());
     propertiesFile->setValue("playlistLooping", isPlaylistLooping);
+
+    // Save reverb settings
+    propertiesFile->setValue("reverbEnabled", reverbButton.getToggleState());
+    propertiesFile->setValue("reverbWetLevel", reverbSlider.getValue());
+    propertiesFile->setValue("reverbRoomSize", playerAudio.getReverbRoomSize());
+
+    // Save delay settings
+    propertiesFile->setValue("delayEnabled", delayButton.getToggleState());
+    propertiesFile->setValue("delayTime", delaySlider.getValue());
+    propertiesFile->setValue("delayFeedback", playerAudio.getDelayFeedback());
+
     saveMarkers();
     propertiesFile->saveIfNeeded();
 }

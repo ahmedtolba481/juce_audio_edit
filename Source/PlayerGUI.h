@@ -251,6 +251,12 @@ private:
     juce::Label totalTimeLabel;
     bool isDraggingSlider = false;
 
+    // Advanced Audio Processing - Effects Controls
+    juce::TextButton reverbButton{"Rev"};
+    juce::Slider reverbSlider;
+    juce::TextButton delayButton{"Delay"};
+    juce::Slider delaySlider;
+
     // Waveform visualization
     WaveformComponent waveformComponent;
 

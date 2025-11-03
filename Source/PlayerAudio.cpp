@@ -1,4 +1,5 @@
 ﻿#include "PlayerAudio.h"
+#include <juce_dsp/juce_dsp.h>
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
@@ -14,11 +15,36 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
     resampler.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    
+    // Initialize effects
+    currentSampleRate = sampleRate;
+    
+    // Prepare DSP effects
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlockExpected);
+    spec.numChannels = static_cast<juce::uint32>(2);
+    
+    reverb.prepare(spec);
+    
+    // Initialize reverb parameters
+    reverbParams.roomSize = reverbRoomSize;
+    reverbParams.wetLevel = reverbWetLevel;
+    reverbParams.dryLevel = 1.0f - reverbWetLevel;
+    reverb.setParameters(reverbParams);
+    
+    // Initialize delay buffer
+    delayBufferSize = static_cast<int>(sampleRate * 2.0); // 2 seconds max delay
+    delayBuffer.setSize(2, delayBufferSize, false, true);
+    delayWritePosition = 0;
 }
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
     resampler.getNextAudioBlock(bufferToFill);
+    
+    // Process audio effects
+    processEffects(*bufferToFill.buffer);
     
     // Check A-B loop boundaries after getting audio block
     if (abLoopEnabled && transportSource.isPlaying())
@@ -536,4 +562,64 @@ void PlayerAudio::setWaveformData(const std::vector<float>& data)
                 waveformListener->waveformDataReady();
         });
     }
+}
+
+void PlayerAudio::processEffects(juce::AudioBuffer<float>& buffer)
+{
+    const int numChannels = buffer.getNumChannels();
+    const int numSamples = buffer.getNumSamples();
+    
+    // Process delay
+    if (delayEnabled && delayBufferSize > 0)
+    {
+        const int delaySamples = static_cast<int>((delayTimeMs / 1000.0) * currentSampleRate);
+        
+        for (int channel = 0; channel < juce::jmin(numChannels, 2); ++channel)
+        {
+            float* channelData = buffer.getWritePointer(channel);
+            float* delayChannelData = delayBuffer.getWritePointer(channel);
+            
+            for (int i = 0; i < numSamples; ++i)
+            {
+                const int readPos = (delayWritePosition - delaySamples + delayBufferSize) % delayBufferSize;
+                const float delayedSample = delayChannelData[readPos];
+                
+                // Store current sample with feedback for next time
+                delayChannelData[delayWritePosition] = channelData[i] + delayedSample * delayFeedback;
+                
+                // Mix delayed signal into output
+                channelData[i] += delayedSample;
+                
+                delayWritePosition = (delayWritePosition + 1) % delayBufferSize;
+            }
+        }
+    }
+    
+    // Process reverb
+    if (reverbEnabled)
+    {
+        reverbParams.roomSize = reverbRoomSize;
+        reverbParams.wetLevel = reverbWetLevel;
+        reverbParams.dryLevel = 1.0f - reverbWetLevel;
+        reverb.setParameters(reverbParams);
+        
+        juce::dsp::AudioBlock<float> block(buffer);
+        juce::dsp::ProcessContextReplacing<float> context(block);
+        reverb.process(context);
+    }
+}
+
+void PlayerAudio::setReverbRoomSize(float roomSize) 
+{ 
+    reverbRoomSize = roomSize; 
+    reverbParams.roomSize = roomSize;
+    reverb.setParameters(reverbParams);
+}
+
+void PlayerAudio::setReverbWetLevel(float wetLevel) 
+{ 
+    reverbWetLevel = wetLevel; 
+    reverbParams.wetLevel = wetLevel;
+    reverbParams.dryLevel = 1.0f - wetLevel;
+    reverb.setParameters(reverbParams);
 }

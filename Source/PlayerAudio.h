@@ -89,6 +89,16 @@ public:
     void generateWaveformAsync(const juce::File& file);
     bool isWaveformGenerating() const;
 
+    // Advanced Audio Processing - Effects
+    void setReverbEnabled(bool enabled) { reverbEnabled = enabled; }
+    void setReverbRoomSize(float roomSize);
+    void setReverbWetLevel(float wetLevel);
+    float getReverbRoomSize() const { return reverbRoomSize; }
+    void setDelayEnabled(bool enabled) { delayEnabled = enabled; }
+    void setDelayTime(float delayMs) { delayTimeMs = delayMs; }
+    void setDelayFeedback(float feedback) { delayFeedback = feedback; }
+    float getDelayFeedback() const { return delayFeedback; }
+    
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
@@ -116,6 +126,24 @@ private:
     std::unique_ptr<WaveformGeneratorThread> waveformThread;
     mutable juce::CriticalSection waveformDataLock;
     WaveformListener* waveformListener = nullptr;
+    
+    // Advanced Audio Processing - Effects
+    juce::dsp::Reverb reverb;
+    juce::dsp::Reverb::Parameters reverbParams;
+    
+    bool reverbEnabled = false;
+    float reverbRoomSize = 0.5f;
+    float reverbWetLevel = 0.3f;
+    
+    bool delayEnabled = false;
+    float delayTimeMs = 200.0f;
+    float delayFeedback = 0.3f;
+    juce::AudioBuffer<float> delayBuffer;
+    int delayBufferSize = 0;
+    int delayWritePosition = 0;
+    double currentSampleRate = 44100.0;
+    
+    void processEffects(juce::AudioBuffer<float>& buffer);
     
     // Helper methods
     void setWaveformData(const std::vector<float>& data);
