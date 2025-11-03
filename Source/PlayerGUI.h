@@ -34,30 +34,30 @@ private:
 // Marker structure to store timestamp and label
 struct TrackMarker
 {
-    double timestamp;           // Position in seconds
-    juce::String label;         // Marker label
-    juce::String fileId;        // Associated file identifier to support multiple tracks
-    
-    TrackMarker(double time, const juce::String& markerLabel, const juce::String& file)
+    double timestamp;    // Position in seconds
+    juce::String label;  // Marker label
+    juce::String fileId; // Associated file identifier to support multiple tracks
+
+    TrackMarker(double time, const juce::String &markerLabel, const juce::String &file)
         : timestamp(time), label(markerLabel), fileId(file) {}
 };
 
 // Custom component for marker list rows
 class MarkerRowComponent : public juce::Component,
-                          public juce::Button::Listener
+                           public juce::Button::Listener
 {
 public:
-    MarkerRowComponent(PlayerGUI* parent);
-    void updateRow(int rowIndex, const juce::String& markerLabel, const juce::String& time);
+    MarkerRowComponent(PlayerGUI *parent);
+    void updateRow(int rowIndex, const juce::String &markerLabel, const juce::String &time);
     void resized() override;
-    void paint(juce::Graphics& g) override;
-    void buttonClicked(juce::Button* button) override;
-    void mouseDown(const juce::MouseEvent& event) override;
-    
+    void paint(juce::Graphics &g) override;
+    void buttonClicked(juce::Button *button) override;
+    void mouseDown(const juce::MouseEvent &event) override;
+
 private:
     juce::Rectangle<int> getDeleteButtonBounds() const;
-    bool isClickOnDeleteButton(const juce::MouseEvent& event);
-    PlayerGUI* owner;
+    bool isClickOnDeleteButton(const juce::MouseEvent &event);
+    PlayerGUI *owner;
     int currentRow = -1;
     juce::Label markerLabel;
     juce::Label timeLabel;
@@ -72,26 +72,26 @@ class PlayerGUI;
 class WaveformComponent : public juce::Component
 {
 public:
-    WaveformComponent(PlayerAudio* audio);
-    void paint(juce::Graphics& g) override;
+    WaveformComponent(PlayerAudio *audio);
+    void paint(juce::Graphics &g) override;
     void resized() override;
-    
+
 private:
-    PlayerAudio* playerAudio;
+    PlayerAudio *playerAudio;
 };
 
 // Model for markers list box
 class MarkersListBoxModel : public juce::ListBoxModel
 {
 public:
-    MarkersListBoxModel(PlayerGUI* parent) : owner(parent) {}
-    
+    MarkersListBoxModel(PlayerGUI *parent) : owner(parent) {}
+
     int getNumRows() override;
-    void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
-    juce::Component* refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component* existingComponentToUpdate) override;
-    
+    void paintListBoxItem(int rowNumber, juce::Graphics &g, int width, int height, bool rowIsSelected) override;
+    juce::Component *refreshComponentForRow(int rowNumber, bool isRowSelected, juce::Component *existingComponentToUpdate) override;
+
 private:
-    PlayerGUI* owner;
+    PlayerGUI *owner;
 };
 
 class PlayerGUI : public juce::Component,
@@ -132,18 +132,19 @@ public:
     // Auto-play next track functionality
     void playNextTrack();
     void playPreviousTrack();
-    
+
     // Marker functionality
     void addMarker();
     void jumpToMarker(int markerIndex);
     void deleteMarker(int markerIndex);
     int getMarkerCount() const { return static_cast<int>(markers.size()); }
-    const TrackMarker& getMarker(int index) const { return markers[index]; }
+    const TrackMarker &getMarker(int index) const { return markers[index]; }
 
 private:
     PlayerAudio playerAudio;
     bool isMuted = false;
     bool isLooping = false;
+    bool isPlaylistLooping = false;
     bool isABLoopEnabled = false;
     float previousGain = 0.4f;
 
@@ -157,11 +158,11 @@ private:
     juce::StringArray trackTimes;
     int currentPlayingIndex = -1;      // Track the currently playing track index in playlist
     bool isReorderingPlaylist = false; // Flag to prevent auto-play during drag and drop
-    
+
     // Marker data
     std::vector<TrackMarker> markers;
     int markerCounter = 0;
-    
+
     // GUI elements
     juce::ListBox playlistBox;
     juce::TextButton addFilesButton{"Add Files"};
@@ -182,6 +183,7 @@ private:
     juce::ImageButton LoopButton;
     juce::Image loopimage;
     juce::Image unloopimage;
+    juce::ImageButton playlistLoopButton;
     juce::ImageButton forwardButton;
     juce::Image forwardimage;
     juce::ImageButton backwardButton;
@@ -196,7 +198,7 @@ private:
     juce::TextButton clearABButton{"Clear A-B"};
     juce::TextButton enableABLoopButton{"A-B Loop: OFF"};
     juce::Label abLoopInfoLabel;
-    
+
     // Marker controls
     juce::TextButton addMarkerButton{"Add Marker"};
     juce::TextButton clearMarkersButton{"Clear All Markers"};
@@ -213,13 +215,11 @@ private:
     juce::Label currentTimeLabel;
     juce::Label totalTimeLabel;
     bool isDraggingSlider = false;
-    
+
     // Waveform visualization
     WaveformComponent waveformComponent;
 
-
     juce::Label playlistLabel;
-
 
     // Metadata display labels
     juce::Label metadataTitleLabel;
@@ -238,25 +238,25 @@ private:
     void drawABLoopMarkers(juce::Graphics &g);
     void drawTrackMarkers(juce::Graphics &g);
     std::unique_ptr<juce::PropertiesFile> propertiesFile;
-    
+
     juce::String getCurrentFileId() const;
     void loadMarkersForCurrentFile();
     void saveMarkers();
     void loadMarkers();
 
     void updateMetadataDisplay();
-    
+
     // Helper methods
     int findCurrentFileIndexInPlaylist() const;
-    double calculateFileDuration(const juce::File& file) const;
+    double calculateFileDuration(const juce::File &file) const;
     void setPlayButtonState(bool isPlaying);
     void setMuteButtonState(bool muted);
     void resetUIToEmptyState();
     void savePropertiesFileState();
-    
+
     // Friend access for MarkersListBoxModel
     friend class MarkersListBoxModel;
-    const std::vector<TrackMarker>& getMarkers() const { return markers; }
+    const std::vector<TrackMarker> &getMarkers() const { return markers; }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };

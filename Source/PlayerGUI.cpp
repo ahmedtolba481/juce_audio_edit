@@ -14,7 +14,7 @@ PlaylistRowComponent::PlaylistRowComponent(PlayerGUI *parent) : owner(parent)
     durationLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(durationLabel);
 
-    deleteButton.setButtonText("✕");
+    deleteButton.setButtonText("Delete");
     deleteButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
     deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5555));
     deleteButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
@@ -147,7 +147,7 @@ MarkerRowComponent::MarkerRowComponent(PlayerGUI *parent) : owner(parent)
     timeLabel.setInterceptsMouseClicks(false, false);
     addAndMakeVisible(timeLabel);
 
-    deleteButton.setButtonText("✕");
+    deleteButton.setButtonText("X");
     deleteButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFFE74C3C));
     deleteButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5555));
     deleteButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
@@ -704,6 +704,15 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     addAndMakeVisible(LoopButton);
     LoopButton.addListener(this);
 
+    playlistLoopButton.setClickingTogglesState(true);
+    playlistLoopButton.setImages(false, true, true,
+                                 unloopimage, 1.0f, juce::Colours::transparentBlack,
+                                 unloopimage, 0.5f, juce::Colours::white.withAlpha(0.3f),
+                                 loopimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
+
+    addAndMakeVisible(playlistLoopButton);
+    playlistLoopButton.addListener(this);
+
     forwardimage = juce::ImageFileFormat::loadFrom(BinaryData::forward_png, BinaryData::forward_pngSize);
     forwardButton.setImages(false, true, true,
                             forwardimage, 1.0f, juce::Colours::transparentBlack,
@@ -815,6 +824,8 @@ PlayerGUI::PlayerGUI() : markersListBoxModel(this), waveformComponent(&playerAud
     lastSpeed = propertiesFile->getDoubleValue("speed", 1.0);
     lastFullTime = propertiesFile->getValue("totalTime", "00:00");
     mutedState = propertiesFile->getBoolValue("mutedState", false);
+    isPlaylistLooping = propertiesFile->getBoolValue("playlistLooping", false);
+    playlistLoopButton.setToggleState(isPlaylistLooping, juce::dontSendNotification);
     lastFile = juce::File(lastFilePath);
 
     setPointAButton.addListener(this);
@@ -943,9 +954,8 @@ void PlayerGUI::resized()
     int waveformHeight = 70;
     waveformComponent.setBounds(90, waveformY, getWidth() - 180, waveformHeight);
 
-    volumeSlider.setBounds(110, waveformY + waveformHeight + 15, getWidth() -250, 26);
-    MuteButton.setBounds(50, waveformY + waveformHeight+9 , buttonWidth, buttonHeight);
-
+    volumeSlider.setBounds(110, waveformY + waveformHeight + 15, getWidth() - 250, 26);
+    MuteButton.setBounds(50, waveformY + waveformHeight + 9, buttonWidth, buttonHeight);
 
     speedLabel.setBounds(20, waveformY + waveformHeight + 50, 85, 26);
     speedslider.setBounds(110, waveformY + waveformHeight + 50, getWidth() - 135, 26);
@@ -969,9 +979,11 @@ void PlayerGUI::resized()
     markersLabel.setBounds(20, markerY, 150, 25);
     addMarkerButton.setBounds(180, markerY, 100, 25);
     clearMarkersButton.setBounds(290, markerY, 130, 25);
-    playlistLabel.setBounds(625, markerY, 150, 25);
-    addFilesButton.setBounds(700, markerY, 100,25 );
-    clearPlaylistButton.setBounds(810, markerY,100 ,25 );
+    playlistLabel.setBounds(625, markerY, 75, 25);
+    addFilesButton.setBounds(700, markerY, 100, 25);
+    clearPlaylistButton.setBounds(810, markerY, 100, 25);
+    playlistLoopButton.setBounds(885, markerY - 5, 120, 35);
+
     int remainingHeight = getHeight() - (markerY + 35);
     int playlistandMarkerListHeight = static_cast<int>(remainingHeight * 0.6);
 
@@ -1313,6 +1325,10 @@ void PlayerGUI::buttonClicked(juce::Button *button)
                                  unloopimage, 1.0f, juce::Colours::white.withAlpha(0.6f));
         }
     }
+    else if (button == &playlistLoopButton)
+    {
+        isPlaylistLooping = playlistLoopButton.getToggleState();
+    }
     else if (button == &forwardButton)
     {
         double newPos = playerAudio.getPosition() + 10.0;
@@ -1429,7 +1445,7 @@ void PlayerGUI::sliderValueChanged(juce::Slider *slider)
         {
             isMuted = false;
             setMuteButtonState(false);
-		}
+        }
         if (!isMuted)
         {
             previousGain = v;
@@ -1793,9 +1809,17 @@ void PlayerGUI::playNextTrack()
     }
     else
     {
-        playerAudio.stop();
-        setPlayButtonState(false);
-        currentPlayingIndex = -1;
+        if (isPlaylistLooping && playlistFiles.size() > 0)
+        {
+            // Loop back to the beginning of the playlist
+            selectPlaylistRow(0);
+        }
+        else
+        {
+            playerAudio.stop();
+            setPlayButtonState(false);
+            currentPlayingIndex = -1;
+        }
     }
 }
 
@@ -2130,6 +2154,7 @@ void PlayerGUI::savePropertiesFileState()
         propertiesFile->removeValue("abLoopPointB");
 
     propertiesFile->setValue("abLoopEnabled", playerAudio.isABLoopEnabled());
+    propertiesFile->setValue("playlistLooping", isPlaylistLooping);
     saveMarkers();
     propertiesFile->saveIfNeeded();
 }
